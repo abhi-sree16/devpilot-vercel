@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0e17">
+<title>DevPilot</title>
+<style>
+  :root{
+    --bg:#0a0e17; --card:#101624; --card2:#151d2e; --border:#1f2a40;
+    --text:#e6ecf5; --muted:#8b98ad; --accent:#6c8cff; --accent2:#22d3ee;
+    --easy:#34d399; --medium:#fbbf24; --hard:#f87171; --ok:#34d399; --err:#f87171;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh}
+  .hidden{display:none !important}
+
+  /* ── Password gate ── */
+  #gate{position:fixed; inset:0; z-index:100; background:radial-gradient(1200px 600px at 50% -10%, #16223d 0%, var(--bg) 60%);
+    display:flex; align-items:center; justify-content:center; padding:20px}
+  .gate-card{width:100%; max-width:380px; background:var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:32px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .gate-logo{font-size:40px}
+  .gate-card h1{font-size:22px; margin:10px 0 4px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .gate-card p{color:var(--muted); font-size:13px; margin-bottom:20px}
+  #gate-err{color:var(--err); font-size:13px; min-height:18px; margin-bottom:10px}
+
+  /* ── Nav ── */
+  nav{position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:6px;
+    padding:12px 20px; background:rgba(10,14,23,.85); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border); overflow-x:auto}
+  .brand{font-weight:800; font-size:18px; margin-right:16px; white-space:nowrap;
+    background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .tab{padding:8px 14px; border-radius:10px; border:1px solid transparent; background:none;
+    color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--text); background:var(--card2); border-color:var(--border)}
+  nav .spacer{flex:1}
+  .lock-btn{padding:8px 12px; border-radius:10px; background:var(--card2); border:1px solid var(--border);
+    color:var(--muted); cursor:pointer; font-size:14px; white-space:nowrap}
+  .lock-btn:hover{color:var(--text)}
+
+  /* ── Layout ── */
+  main{max-width:1080px; margin:0 auto; padding:28px 20px 60px}
+  .page-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; flex-wrap:wrap}
+  .page-head h1{font-size:24px}
+  .page-head .sub{color:var(--muted); font-size:13px; margin-top:4px}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:20px; margin-bottom:18px}
+  .card h3{font-size:16px; margin-bottom:12px}
+  .card h4{font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:16px 0 8px}
+  .sub{color:var(--muted); font-size:13px}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  @media(max-width:760px){.grid-2{grid-template-columns:1fr}}
+
+  /* ── Stats ── */
+  .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px}
+  @media(max-width:760px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px;
+    display:flex; align-items:center; gap:14px}
+  .stat-icon{font-size:26px}
+  .stat-num{font-size:26px; font-weight:800}
+  .stat-label{color:var(--muted); font-size:12px; margin-top:2px}
+
+  /* ── Badges / bars ── */
+  .badge{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:700}
+  .badge.easy{background:rgba(52,211,153,.12); color:var(--easy)}
+  .badge.medium{background:rgba(251,191,36,.12); color:var(--medium)}
+  .badge.hard{background:rgba(248,113,113,.12); color:var(--hard)}
+  .badge.solved{background:rgba(52,211,153,.12); color:var(--easy); margin-left:8px}
+  .bar-row{display:flex; align-items:center; gap:10px; margin:8px 0; font-size:13px}
+  .bar-row .lbl{width:64px; color:var(--muted)}
+  .bar-track{flex:1; height:8px; background:var(--card2); border-radius:99px; overflow:hidden}
+  .bar-fill{height:100%; border-radius:99px}
+  .bar-row .val{width:36px; text-align:right; font-weight:700}
+
+  .recent-list{list-style:none}
+  .recent-list li{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px}
+  .recent-list li:last-child{border-bottom:none}
+  .recent-list .d{color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
+
+  /* ── Forms / buttons ── */
+  label{display:block; font-size:12px; color:var(--muted); margin:14px 0 6px; font-weight:600}
+  textarea,input,select{width:100%; background:var(--card2); border:1px solid var(--border);
+    border-radius:10px; color:var(--text); padding:10px 12px; font-size:14px; font-family:inherit; outline:none}
+  textarea{min-height:90px; resize:vertical; line-height:1.5}
+  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+  .btn{display:inline-block; padding:10px 18px; border-radius:10px; border:none; cursor:pointer;
+    font-size:14px; font-weight:700; color:#fff; margin-top:14px; margin-right:8px;
+    background:linear-gradient(90deg,#5b7cfa,#3ec6e8)}
+  .btn:hover{filter:brightness(1.1)}
+  .btn:disabled{opacity:.45; cursor:not-allowed}
+  .btn.ghost{background:var(--card2); border:1px solid var(--border); color:var(--text)}
+  .btn.sm{padding:6px 12px; font-size:12px; margin-top:0}
+  .row-btns{margin:4px 0 18px}
+  .row-between{display:flex; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap:wrap; gap:8px}
+
+  /* ── Code / prose ── */
+  .code-wrap{position:relative; background:#0b0f19; border:1px solid var(--border); border-radius:10px; overflow:auto}
+  .code-wrap pre{padding:14px; font-size:12.5px; line-height:1.55; white-space:pre-wrap; word-break:break-word}
+  .code-wrap code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .copy{position:sticky; float:right; top:6px; right:6px; margin:6px; padding:4px 10px; font-size:11px;
+    background:var(--card2); border:1px solid var(--border); border-radius:7px; color:var(--muted); cursor:pointer}
+  .copy:hover{color:var(--text)}
+  .prose{white-space:pre-wrap; font-size:14px; line-height:1.65}
+  .prose-pre{white-space:pre-wrap; font-size:13.5px; line-height:1.6; font-family:inherit}
+
+  .file-tree{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px;
+    background:#0b0f19; border:1px solid var(--border); border-radius:10px; padding:12px 14px; line-height:1.8}
+  .plan-tasks{margin:0 0 0 18px; font-size:13.5px; line-height:1.8}
+
+  .success-box{border:1px solid rgba(52,211,153,.35); background:rgba(52,211,153,.07);
+    border-radius:10px; padding:12px 14px; margin-top:14px; font-size:13.5px}
+  .success-box a{color:var(--accent2)}
+
+  /* ── Toast ── */
+  #toast{position:fixed; bottom:24px; right:24px; z-index:200; max-width:360px;
+    background:var(--card2); border:1px solid var(--border); border-left:4px solid var(--accent);
+    border-radius:10px; padding:12px 16px; font-size:13.5px; box-shadow:0 10px 30px rgba(0,0,0,.5);
+    opacity:0; transform:translateY(10px); transition:all .25s; pointer-events:none}
+  #toast.show{opacity:1; transform:translateY(0)}
+  #toast.error{border-left-color:var(--err)}
+
+  footer{text-align:center; color:var(--muted); font-size:12px; padding:20px; border-top:1px solid var(--border)}
+  a{color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<!-- ═══ Password gate ═══ -->
+<div id="gate" class="hidden">
+  <form class="gate-card" id="gate-form">
+    <div class="gate-logo">✈️</div>
+    <h1>DevPilot</h1>
+    <p>daily → GitHub → LinkedIn, on autopilot</p>
+    <div id="gate-err"></div>
+    <input type="password" id="gate-pass" placeholder="App password" autocomplete="current-password" autofocus>
+    <button class="btn" type="submit" style="width:100%">Unlock</button>
+  </form>
+</div>
+
+<!-- ═══ App ═══ -->
+<div id="app" class="hidden">
+  <nav>
+    <span class="brand">✈️ DevPilot</span>
+    <button class="tab active" data-page="dash">Dashboard</button>
+    <button class="tab" data-page="leetcode">LeetCode</button>
+    <button class="tab" data-page="projects">Projects</button>
+    <button class="tab" data-page="posts">Posts</button>
+    <span class="spacer"></span>
+    <button class="lock-btn" id="lock-btn" title="Password marchali antey">🔒 Lock</button>
+  </nav>
+
+  <main>
+    <!-- ─── Dashboard ─── -->
+    <section id="page-dash" class="page">
+      <div class="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="sub" id="dash-date"></p>
+        </div>
+        <button class="btn ghost sm" id="dash-refresh">↻ Refresh</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-icon">🔥</div><div><div class="stat-num" id="stat-streak">–</div><div class="stat-label">Day Streak</div></div></div>
+        <div class="stat"><div class="stat-icon">📦</div><div><div class="stat-num" id="stat-solved">–</div><div class="stat-label">Repo Solutions</div></div></div>
+        <div class="stat"><div class="stat-icon">✍️</div><div><div class="stat-num" id="stat-posts">–</div><div class="stat-label">LinkedIn Drafts</div></div></div>
+        <div class="stat"><div class="stat-icon">🧠</div><div><div class="stat-num" id="stat-total">–</div><div class="stat-label">LeetCode Solved</div></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>LeetCode Profile</h3>
+          <div id="lc-profile" class="sub">Loading…</div>
+        </div>
+        <div class="card">
+          <h3>Recent Solutions <span class="sub">(repo LOG.md)</span></h3>
+          <ul class="recent-list" id="dash-recent"></ul>
+          <div style="margin-top:14px"><a class="btn ghost sm" id="repo-link" target="_blank" rel="noopener">Open repo ↗</a></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── LeetCode ─── -->
+    <section id="page-leetcode" class="page hidden">
+      <div class="page-head">
+        <div>
+          <h1>LeetCode Daily</h1>
+          <p class="sub">rodhu oka problem — hints / solution → GitHub commit → streak maintained</p>
+        </div>
+        <button class="btn ghost sm" id="daily-refresh">↻ Refresh</button>
+      </div>
+      <div class="card" id="daily-card"><p class="sub">Loading today's problem…</p></div>
+      <div class="row-btns">
+        <button class="btn ghost" id="btn-hints" data-busy="⏳ Hints raavatam…">💡 Hints</button>
+        <button class="btn" id="btn-solution" data-busy="⏳ Generating… (30-60s)">⚡ Full Solution</button>
+        <button class="btn" id="btn-commit" disabled>🚀 Commit to GitHub</button>
+      </div>
+      <div class="card hidden" id="hints-box">
+        <h3>💡 Hints</h3>
+        <div class="prose" id="hints-text"></div>
+      </div>
+      <div class="card hidden" id="sol-box">
+        <h3>⚡ Solution</h3>
+        <p style="font-size:14px; line-height:1.6"><b>Approach:</b> <span id="sol-approach"></span></p>
+        <p style="font-size:14px; line-height:1.6; margin-top:8px"><b>Complexity:</b> <span id="sol-complexity"></span></p>
+        <h4>Python 3</h4>
+        <div class="code-wrap"><button class="copy" data-copy="sol-code">Copy</button><pre><code id="sol-code"></code></pre></div>
+        <h4>LinkedIn Post <span class="sub">(Posts page lo edit cheyochu)</span></h4>
+        <div class="code-wrap"><button class="copy" data-copy="post-preview">Copy</button><pre class="prose-pre" id="post-preview"></pre></div>
+      </div>
+    </section>
+
+    <!-- ─── Projects ─── -->
+    <section id="page-projects" class="page hidden">
+      <div class="page-head">
+        <div>
+          <h1>Projects</h1>
+          <p class="sub">idea → AI plan → GitHub repo automatic ga</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🪄 New Project Plan</h3>
+        <label>Project idea</label>
+        <textarea id="plan-idea" placeholder="e.g. expense tracker with charts and monthly reports"></textarea>
+        <label>Level</label>
+        <select id="plan-level">
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
+        </select>
+        <button class="btn" id="btn-plan" data-busy="⏳ Planning… (30-60s)">🪄 Generate Plan</button>
+      </div>
+      <div class="card hidden" id="plan-box">
+        <h3 id="plan-name"></h3>
+        <p class="sub" id="plan-desc"></p>
+        <p class="prose" id="plan-pitch" style="margin-top:12px"></p>
+        <h4>Files pushed to repo</h4>
+        <div class="file-tree" id="plan-files"></div>
+        <h4>First Tasks</h4>
+        <ol class="plan-tasks" id="plan-tasks"></ol>
+        <button class="btn" id="btn-repo" data-busy="⏳ Repo create + files push…">📦 Create Repo &amp; Push</button>
+        <div class="success-box hidden" id="plan-success"></div>
+      </div>
+      <div class="card">
+        <h3>📌 Progress Update</h3>
+        <label>Repo name</label>
+        <input id="prog-repo" placeholder="my-project">
+        <label>Eppudu em pannavu?</label>
+        <textarea id="prog-did" placeholder="e.g. added auth, fixed deploy, wrote tests"></textarea>
+        <button class="btn ghost" id="btn-progress" data-busy="⏳ Summarizing…">📊 Summarize with AI</button>
+      </div>
+      <div class="card hidden" id="progress-box">
+        <h3>Today's Summary</h3>
+        <ul class="plan-tasks" id="prog-summary" style="list-style:disc"></ul>
+        <h4>Next Steps</h4>
+        <ul class="plan-tasks" id="prog-next" style="list-style:disc"></ul>
+        <h4>LinkedIn Post</h4>
+        <div class="code-wrap"><button class="copy" data-copy="prog-post">Copy</button><pre class="prose-pre" id="prog-post"></pre></div>
+        <button class="btn" id="btn-push-progress" data-busy="⏳ Pushing…">Push to PROGRESS.md</button>
+        <div class="success-box hidden" id="prog-success"></div>
+      </div>
+    </section>
+
+    <!-- ─── Posts ─── -->
+    <section id="page-posts" class="page hidden">
+      <div class="page-head">
+        <div>
+          <h1>LinkedIn Posts</h1>
+          <p class="sub">draft → GitHub lo save → copy chesi LinkedIn lo post</p>
+        </div>
+        <button class="btn ghost sm" id="btn-load-solution">↺ Load today's solution post</button>
+      </div>
+      <div class="card">
+        <label>Draft</label>
+        <textarea id="post-text" rows="10" placeholder="LinkedIn post type chey… leda AI tho generate chey"></textarea>
+        <div class="row-between">
+          <span class="sub" id="post-count">0 chars</span>
+        </div>
+        <label>AI ki context (optional)</label>
+        <input id="post-context" placeholder="e.g. today solved a DP problem, 3 day streak, learned memoization">
+        <div>
+          <button class="btn ghost" id="btn-gen-post" data-busy="⏳ Writing…">✨ Generate with AI</button>
+          <button class="btn" id="btn-save-post" data-busy="⏳ Saving…">💾 Save to GitHub</button>
+        </div>
+        <div class="success-box hidden" id="post-success"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>DevPilot · Vercel edition · daily → GitHub → LinkedIn, on autopilot</footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const el = id => document.getElementById(id);
+let PW = localStorage.getItem("dp_pass") || "";
+const state = {problem:null, solution:null, plan:null, lastProgress:null, loaded:{}};
+
+/* ── API helper ─────────────────────────────────────────── */
+async function api(path, method, body){
+  const opts = {method: method || "GET", headers: {"x-app-password": PW}};
+  if (body){ opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  const r = await fetch(path, opts);
+  const d = await r.json().catch(() => ({ok:false, error:"Server response parse aagaldu"}));
+  if (d && d.auth === false){ showGate(d.error || "Password wrong"); throw new Error(d.error || "Auth fail"); }
+  if (!d || !d.ok) throw new Error((d && d.error) || "API error");
+  return d;
+}
+
+/* ── Toast ──────────────────────────────────────────────── */
+let toastTimer = null;
+function toast(msg, isErr){
+  const t = el("toast");
+  t.textContent = msg;
+  t.className = "show" + (isErr ? " error" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ""; }, 4200);
+}
+
+/* ── Busy buttons ───────────────────────────────────────── */
+async function withBusy(btn, fn){
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = btn.dataset.busy || "⏳ Working…";
+  try { await fn(); }
+  catch(e){ toast("❌ " + e.message, true); console.error(e); }
+  finally { btn.disabled = false; btn.innerHTML = orig; }
+}
+
+/* ── Password gate ──────────────────────────────────────── */
+function showGate(err){
+  el("gate").classList.remove("hidden");
+  el("app").classList.add("hidden");
+  el("gate-err").textContent = err || "";
+  el("gate-pass").value = "";
+  el("gate-pass").focus();
+}
+function hideGate(){ el("gate").classList.add("hidden"); el("app").classList.remove("hidden"); }
+
+el("gate-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const p = el("gate-pass").value.trim();
+  if (!p){ el("gate-err").textContent = "Password type chey"; return; }
+  el("gate-err").textContent = "Checking…";
+  PW = p;
+  try {
+    await api("/api/stats");
+    localStorage.setItem("dp_pass", PW);
+    hideGate();
+    initPages();
+  } catch(err){
+    PW = "";
+    el("gate-err").textContent = err.message || "Password wrong appudu!";
+  }
+});
+el("lock-btn").addEventListener("click", () => {
+  PW = "";
+  localStorage.removeItem("dp_pass");
+  showGate("Locked — password pettu");
+});
+
+/* ── Navigation ─────────────────────────────────────────── */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => showPage(tab.dataset.page));
+});
+function showPage(name){
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.page === name));
+  document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+  el("page-" + name).classList.remove("hidden");
+  if (name === "dash" && !state.loaded.dash) loadDash();
+  if (name === "leetcode" && !state.loaded.daily) loadDaily();
+  if (name === "posts") initPosts();
+}
+function initPages(){ if (!state.loaded.dash) loadDash(); if (!state.loaded.daily) loadDaily(); }
+
+/* ── Copy buttons ───────────────────────────────────────── */
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".copy");
+  if (!b) return;
+  const src = el(b.dataset.copy);
+  try {
+    await navigator.clipboard.writeText(src.innerText);
+    const old = b.textContent; b.textContent = "✓ Copied";
+    setTimeout(() => b.textContent = old, 1500);
+  } catch(err){ toast("Copy fail — manual ga select chey", true); }
+});
+
+/* ═══ DASHBOARD ═══ */
+async function loadDash(){
+  el("dash-date").textContent = "syncing…";
+  try {
+    const d = await api("/api/stats");
+    state.loaded.dash = true;
+    el("dash-date").textContent = "📅 " + (d.today || "");
+    el("stat-streak").textContent = d.streak;
+    el("stat-solved").textContent = d.solved;
+    el("stat-posts").textContent = d.posts;
+    const lc = d.leetcode || {};
+    const st = lc.stats || {};
+    el("stat-total").textContent = st.All != null ? st.All : "–";
+    el("repo-link").href = "https://github.com/" + (d.repo || "");
+    const rank = lc.rank ? lc.rank.toLocaleString("en-US") : "–";
+    el("lc-profile").innerHTML =
+      '<p style="font-size:15px"><b>@' + (lc.username || "–") + "</b> · 🏆 Rank " + rank + "</p>" +
+      bar("Easy", st.Easy || 0, st.All || 0, "var(--easy)") +
+      bar("Medium", st.Medium || 0, st.All || 0, "var(--medium)") +
+      bar("Hard", st.Hard || 0, st.All || 0, "var(--hard)");
+    const ul = el("dash-recent");
+    ul.innerHTML = "";
+    if (!d.recent || !d.recent.length){
+      ul.innerHTML = '<li class="sub">Inka emi ledu — LeetCode page lo solve chey!</li>';
+    } else {
+      d.recent.forEach(r => {
+        const li = document.createElement("li");
+        const diff = (r[1] || "").toLowerCase();
+        li.innerHTML = '<span class="d">' + esc(r[0]) + '</span><span class="badge ' + diff + '">' + esc(r[1]) + '</span><span>' + esc(r[2]) + "</span>";
+        ul.appendChild(li);
+      });
+    }
+  } catch(e){ toast("❌ " + e.message, true); }
+}
+function bar(label, val, total, color){
+  const pct = total ? Math.round(100 * val / total) : 0;
+  return '<div class="bar-row"><span class="lbl">' + label + '</span>' +
+    '<span class="bar-track"><span class="bar-fill" style="width:' + pct + "%;background:" + color + '"></span></span>' +
+    '<span class="val">' + val + "</span></div>";
+}
+el("dash-refresh").addEventListener("click", () => withBusy(el("dash-refresh"), loadDash));
+
+/* ═══ LEETCODE ═══ */
+async function loadDaily(){
+  const card = el("daily-card");
+  card.innerHTML = '<p class="sub">Loading today\u2019s problem…</p>';
+  try {
+    const d = await api("/api/daily");
+    state.loaded.daily = true;
+    state.problem = d;
+    const diff = (d.difficulty || "").toLowerCase();
+    card.innerHTML =
+      '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">' +
+      '<h3 style="margin:0">' + d.num + ". " + esc(d.title) + "</h3>" +
+      '<span class="badge ' + diff + '">' + esc(d.difficulty) + "</span>" +
+      (d.already_solved ? '<span class="badge solved">✓ Solved</span>' : "") + "</div>" +
+      '<p class="sub" style="margin-top:6px">📅 ' + esc(d.date) + ' · <a href="https://leetcode.com' + d.link + '" target="_blank" rel="noopener">Solve on LeetCode ↗</a></p>' +
+      '<div class="prose sub" style="margin-top:12px; max-height:320px; overflow:auto">' + esc(d.content || "") + "</div>";
+    /* prior solution unte commit button enable */
+    const last = JSON.parse(localStorage.getItem("dp_last_solution") || "null");
+    if (last && last.problem && last.problem.slug === d.slug){
+      state.solution = last.solution;
+      renderSolution(last.solution);
+      toast("✨ Yesterday/earlier generated solution vachesindi — leda malli generate chey");
+    }
+  } catch(e){ card.innerHTML = '<p class="sub">❌ ' + esc(e.message) + "</p>"; }
+}
+el("daily-refresh").addEventListener("click", () => withBusy(el("daily-refresh"), loadDaily));
+
+el("btn-hints").addEventListener("click", () => withBusy(el("btn-hints"), async () => {
+  const p = state.problem; if (!p) throw new Error("Problem load avvaledu — refresh chey");
+  const d = await api("/api/solve", "POST", {kind:"hints", problem:{num:p.num, title:p.title, difficulty:p.difficulty, content:p.content}});
+  el("hints-box").classList.remove("hidden");
+  el("hints-text").textContent = d.result;
+}));
+
+el("btn-solution").addEventListener("click", () => withBusy(el("btn-solution"), async () => {
+  const p = state.problem; if (!p) throw new Error("Problem load avvaledu — refresh chey");
+  const d = await api("/api/solve", "POST", {kind:"solution", problem:{num:p.num, title:p.title, difficulty:p.difficulty, content:p.content}});
+  state.solution = d.result;
+  localStorage.setItem("dp_last_solution", JSON.stringify({problem:p, solution:d.result, savedAt:Date.now()}));
+  renderSolution(d.result);
+  toast("✅ Solution ready — Posts page lo LinkedIn draft kuda ready");
+}));
+
+function renderSolution(sol){
+  el("sol-box").classList.remove("hidden");
+  el("sol-approach").textContent = sol.approach || "";
+  el("sol-complexity").textContent = sol.complexity || "";
+  el("sol-code").textContent = sol.code || "";
+  el("post-preview").textContent = sol.linkedin_post || "";
+  el("btn-commit").disabled = false;
+}
+
+el("btn-commit").addEventListener("click", () => withBusy(el("btn-commit"), async () => {
+  const p = state.problem, s = state.solution;
+  if (!p || !s) throw new Error("Mundhu solution generate chey");
+  const d = await api("/api/github", "POST", {action:"commit_solution", problem:p, solution:s});
+  toast("🚀 GitHub ki push aindi!");
+  el("btn-commit").disabled = true;
+  state.loaded.dash = false;
+  if (!el("page-dash").classList.contains("hidden")) loadDash();
+}));
+
+/* ═══ PROJECTS ═══ */
+el("btn-plan").addEventListener("click", () => withBusy(el("btn-plan"), async () => {
+  const idea = el("plan-idea").value.trim();
+  if (!idea) throw new Error("Project idea type chey");
+  const d = await api("/api/solve", "POST", {kind:"plan", idea:idea, level:el("plan-level").value});
+  state.plan = d.result;
+  el("plan-box").classList.remove("hidden");
+  el("plan-success").classList.add("hidden");
+  el("plan-name").textContent = d.result.name;
+  el("plan-desc").textContent = d.result.description || "";
+  el("plan-pitch").textContent = d.result.pitch || "";
+  const files = Object.keys(d.result.files || {});
+  el("plan-files").textContent = files.join("\n") + "\nTODO.md";
+  const ol = el("plan-tasks"); ol.innerHTML = "";
+  (d.result.first_tasks || []).forEach(t => {
+    const li = document.createElement("li"); li.textContent = t; ol.appendChild(li);
+  });
+  el("plan-box").scrollIntoView({behavior:"smooth"});
+}));
+
+el("btn-repo").addEventListener("click", () => withBusy(el("btn-repo"), async () => {
+  if (!state.plan) throw new Error("Mundhu plan generate chey");
+  const d = await api("/api/github", "POST", {action:"project_repo", plan:state.plan});
+  const url = d.url || "";
+  const box = el("plan-success");
+  box.classList.remove("hidden");
+  box.innerHTML = "🎉 Repo ready! <a href=\"" + url + "\" target=\"_blank\" rel=\"noopener\">" + url + "</a>";
+  localStorage.setItem("dp_last_project", state.plan.name);
+  el("prog-repo").value = state.plan.name;
+  el("btn-repo").disabled = true;
+  toast("📦 Project repo created!");
+}));
+
+el("btn-progress").addEventListener("click", () => withBusy(el("btn-progress"), async () => {
+  const repo = el("prog-repo").value.trim(), did = el("prog-did").value.trim();
+  if (!repo || !did) throw new Error("Repo name + em pannavu rendu pettu");
+  const d = await api("/api/solve", "POST", {kind:"progress", repo:repo, did:did});
+  state.lastProgress = {repo:repo, result:d.result};
+  el("progress-box").classList.remove("hidden");
+  el("prog-success").classList.add("hidden");
+  fillList(el("prog-summary"), d.result.summary || []);
+  fillList(el("prog-next"), d.result.next || []);
+  el("prog-post").textContent = d.result.linkedin_post || "";
+  el("progress-box").scrollIntoView({behavior:"smooth"});
+}));
+
+el("btn-push-progress").addEventListener("click", () => withBusy(el("btn-push-progress"), async () => {
+  const lp = state.lastProgress;
+  if (!lp) throw new Error("Mundhu summarize chey");
+  const d = await api("/api/github", "POST", {action:"progress", repo:lp.repo, summary:lp.result.summary});
+  const box = el("prog-success");
+  box.classList.remove("hidden");
+  box.innerHTML = "✅ PROGRESS.md update aindi! <a href=\"" + (d.url || "") + "\" target=\"_blank\" rel=\"noopener\">Repo open chey ↗</a>";
+  toast("📌 Progress pushed to " + lp.repo);
+}));
+
+function fillList(ul, items){
+  ul.innerHTML = "";
+  items.forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+}
+
+/* ═══ POSTS ═══ */
+function initPosts(){
+  const last = JSON.parse(localStorage.getItem("dp_last_solution") || "null");
+  const ta = el("post-text");
+  if (last && last.solution && last.solution.linkedin_post && !ta.value){
+    ta.value = last.solution.linkedin_post;
+    toast("✨ Today's solution post load aindi");
+  }
+  countChars();
+}
+function countChars(){
+  const v = el("post-text").value;
+  el("post-count").textContent = v.length + " chars · " + v.trim().split(/\s+/).filter(Boolean).length + " words";
+}
+el("post-text").addEventListener("input", countChars);
+
+el("btn-load-solution").addEventListener("click", () => {
+  const last = JSON.parse(localStorage.getItem("dp_last_solution") || "null");
+  if (last && last.solution && last.solution.linkedin_post){
+    el("post-text").value = last.solution.linkedin_post;
+    countChars();
+    toast("↺ Solution post load aindi");
+  } else toast("Inka solution generate chey ledu — LeetCode page lo chey", true);
+});
+
+el("btn-gen-post").addEventListener("click", () => withBusy(el("btn-gen-post"), async () => {
+  const ctx = el("post-context").value.trim();
+  if (!ctx) throw new Error("Context type chey (AI ki em gurinchi rayaalo)");
+  const d = await api("/api/solve", "POST", {kind:"post", context:ctx});
+  el("post-text").value = d.result;
+  countChars();
+  toast("✨ Post ready — edit chesi save chey");
+}));
+
+el("btn-save-post").addEventListener("click", () => withBusy(el("btn-save-post"), async () => {
+  const content = el("post-text").value.trim();
+  if (!content) throw new Error("Post empty ga undi");
+  await api("/api/github", "POST", {action:"save_post", content:content});
+  const today = new Date().toISOString().slice(0,10);
+  const box = el("post-success");
+  box.classList.remove("hidden");
+  box.textContent = "✅ posts/" + today + "-post.md push aindi repo lo!";
+  toast("💾 Post saved to GitHub");
+}));
+
+/* ── Utils ──────────────────────────────────────────────── */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+/* ── Boot ───────────────────────────────────────────────── */
+(function boot(){
+  const lastProject = localStorage.getItem("dp_last_project");
+  if (lastProject) el("prog-repo").value = lastProject;
+  if (!PW){ showGate(); }
+  else { hideGate(); initPages(); }
+})();
+</script>
+</body>
+</html>
