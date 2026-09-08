@@ -299,7 +299,7 @@ First person, <120 words, hook line first, one practical lesson, max 2 emojis,
 
         if kind == "plan":
             # PHASE 1: meta + file list matrame (light → fast).
-            # (Files content okate call lo 90s+ padutundi, Vercel 60s limit dhaati — so 2 phases)
+            # (Anni files content okate call lo 90s+ padutundi, Vercel 60s limit dhaati — so 2 phases)
             data = ask_json(f"""Design a portfolio project.
 Idea: {body['idea']}
 Level: {body.get('level', 'beginner')}
@@ -307,23 +307,24 @@ JSON keys:
 - name: short kebab-case GitHub repo name
 - description: one line
 - pitch: recruiter ki enduku impress avtundo, 3-4 lines
-- files_list: array of EXACTLY 4 file paths — README.md + 3 real starter files (correct extensions)
+- files_list: array of 6-8 file paths — real complete project structure: README.md, correct extensions, folders (src/ etc.), core logic + styles + config anni cover chey
 - first_tasks: 5 concrete next tasks""",
                 ["name", "description", "pitch", "files_list", "first_tasks"])
             data["name"] = re.sub(r"[^a-zA-Z0-9-]", "-", str(data.get("name", "new-project"))).strip("-").lower() or "new-project"
             if not isinstance(data.get("files_list"), list) or not data["files_list"]:
-                data["files_list"] = ["README.md", "main.py", "utils.py", "config.json"]
-            data["files_list"] = [re.sub(r"\.\.", "", str(p)).lstrip("/") for p in data["files_list"]][:6]
+                data["files_list"] = ["README.md", "index.html", "style.css", "app.js"]
+            data["files_list"] = [re.sub(r"\.\.", "", str(p)).lstrip("/") for p in data["files_list"]][:9]
             return {"ok": True, "result": data}
 
         if kind == "plan_files":
-            # PHASE 2: aa files content matrame (separate light call)
+            # PHASE 2: batch of 3 files content (frontend batches istundi — prathi call light)
             data = ask_json(f"""Project "{body.get('name', '')}" (idea: {body.get('idea', '')}, level: {body.get('level', 'beginner')}).
-Write contents for EXACTLY these files: {body["files_list"]}
+Project structure (already decided): {body.get('all_files', body['files_list'])}
+Write COMPLETE contents for EXACTLY these files: {body["files_list"]}
 
 JSON keys:
-- files: JSON object path: content. README.md lo short setup steps. Each file STRICTLY under 35 lines, real working starter code, no filler comments.""",
-                ["files"], max_tokens=3500)
+- files: JSON object path: content. Real working code — full logic, functions, imports. Each file under 60 lines. README.md lo setup + usage steps.""",
+                ["files"], max_tokens=4500)
             return {"ok": True, "result": data}
             data["name"] = re.sub(r"[^a-zA-Z0-9-]", "-", str(data.get("name", "new-project"))).strip("-").lower() or "new-project"
             return {"ok": True, "result": data}
