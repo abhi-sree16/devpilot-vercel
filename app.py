@@ -52,34 +52,34 @@ def ask(prompt, max_tokens=6000):
     key = env("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY env var ledu — Vercel settings lo pettu")
+    deadline = time.time() + 50  # Vercel 60s function limit — lopala ne fail avvam
     last_err = "no model tried"
     for model in GEMINI_MODELS:
-        for attempt in range(2):
-            try:
-                r = requests.post(
-                    GEMINI_BASE + "/chat/completions",
-                    headers={"Authorization": f"Bearer {key}"},
-                    json={"model": model, "max_tokens": max_tokens,
-                          "messages": [{"role": "user", "content": prompt}]},
-                    timeout=50)
-            except requests.RequestException as e:
-                raise RuntimeError(f"LLM network error: {e}")
-            if r.status_code == 401:
-                raise RuntimeError("LLM auth fail (401) — GEMINI_API_KEY check chey")
-            if r.status_code == 200:
-                try:
-                    content = (r.json()["choices"][0]["message"].get("content") or "").strip()
-                except (KeyError, IndexError, ValueError):
-                    content = ""
-                if content:
-                    return content
-                last_err = f"{model}: empty response (thinking tokens)"
-                break
-            last_err = f"{model} → HTTP {r.status_code}"
-            if r.status_code in (429, 503) and attempt == 0:
-                time.sleep(2)
-                continue
+        if time.time() > deadline:
             break
+        try:
+            r = requests.post(
+                GEMINI_BASE + "/chat/completions",
+                headers={"Authorization": f"Bearer {key}"},
+                json={"model": model, "max_tokens": max_tokens,
+                      "messages": [{"role": "user", "content": prompt}]},
+                timeout=(10, 40))  # connect 10s, read 40s
+        except requests.RequestException:
+            last_err = f"{model}: network/timeout"
+            continue  # inko model try chey — time waste cheyaku
+        if r.status_code == 401:
+            raise RuntimeError("LLM auth fail (401) — GEMINI_API_KEY check chey")
+        if r.status_code == 200:
+            try:
+                content = (r.json()["choices"][0]["message"].get("content") or "").strip()
+            except (KeyError, IndexError, ValueError):
+                content = ""
+            if content:
+                return content
+            last_err = f"{model}: empty response (thinking tokens)"
+            continue
+        # 429/503 — sleep cheyakunda direct ga next model
+        last_err = f"{model} → HTTP {r.status_code}"
     raise RuntimeError(f"LLM API fail — {last_err}")
 
 
@@ -298,6 +298,8 @@ First person, <120 words, hook line first, one practical lesson, max 2 emojis,
             return {"ok": True, "result": text}
 
         if kind == "plan":
+            # PHASE 1: meta + file list matrame (light → fast).
+            # (Files content okate call lo 90s+ padutundi, Vercel 60s limit dhaati — so 2 phases)
             data = ask_json(f"""Design a portfolio project.
 Idea: {body['idea']}
 Level: {body.get('level', 'beginner')}
@@ -305,9 +307,24 @@ JSON keys:
 - name: short kebab-case GitHub repo name
 - description: one line
 - pitch: recruiter ki enduku impress avtundo, 3-4 lines
-- files: JSON object — path: content. README.md (setup steps tho) + starter structure (5-10 small but real files)
+- files_list: array of EXACTLY 4 file paths — README.md + 3 real starter files (correct extensions)
 - first_tasks: 5 concrete next tasks""",
-                ["name", "description", "pitch", "files", "first_tasks"])
+                ["name", "description", "pitch", "files_list", "first_tasks"])
+            data["name"] = re.sub(r"[^a-zA-Z0-9-]", "-", str(data.get("name", "new-project"))).strip("-").lower() or "new-project"
+            if not isinstance(data.get("files_list"), list) or not data["files_list"]:
+                data["files_list"] = ["README.md", "main.py", "utils.py", "config.json"]
+            data["files_list"] = [re.sub(r"\.\.", "", str(p)).lstrip("/") for p in data["files_list"]][:6]
+            return {"ok": True, "result": data}
+
+        if kind == "plan_files":
+            # PHASE 2: aa files content matrame (separate light call)
+            data = ask_json(f"""Project "{body.get('name', '')}" (idea: {body.get('idea', '')}, level: {body.get('level', 'beginner')}).
+Write contents for EXACTLY these files: {body["files_list"]}
+
+JSON keys:
+- files: JSON object path: content. README.md lo short setup steps. Each file STRICTLY under 35 lines, real working starter code, no filler comments.""",
+                ["files"], max_tokens=3500)
+            return {"ok": True, "result": data}
             data["name"] = re.sub(r"[^a-zA-Z0-9-]", "-", str(data.get("name", "new-project"))).strip("-").lower() or "new-project"
             return {"ok": True, "result": data}
 
