@@ -498,6 +498,7 @@ el("btn-commit").addEventListener("click", () => withBusy(el("btn-commit"), asyn
 el("btn-plan").addEventListener("click", () => withBusy(el("btn-plan"), async () => {
   const idea = el("plan-idea").value.trim();
   if (!idea) throw new Error("Project idea type chey");
+  /* phase 1: plan meta (fast) */
   const d = await api("/api/solve", "POST", {kind:"plan", idea:idea, level:el("plan-level").value});
   state.plan = d.result;
   el("plan-box").classList.remove("hidden");
@@ -505,14 +506,23 @@ el("btn-plan").addEventListener("click", () => withBusy(el("btn-plan"), async ()
   el("plan-name").textContent = d.result.name;
   el("plan-desc").textContent = d.result.description || "";
   el("plan-pitch").textContent = d.result.pitch || "";
-  const files = Object.keys(d.result.files || {});
-  el("plan-files").textContent = files.join("\n") + "\nTODO.md";
   const ol = el("plan-tasks"); ol.innerHTML = "";
   (d.result.first_tasks || []).forEach(t => {
     const li = document.createElement("li"); li.textContent = t; ol.appendChild(li);
   });
+  el("plan-files").textContent = "⏳ files generate avtunnay… (20-30s)";
+  el("btn-repo").disabled = true;
   el("plan-box").scrollIntoView({behavior:"smooth"});
+  /* phase 2: file contents (separate call — Vercel 60s limit safe) */
+  btnPlanBusy("⏳ Files raastunnay… (20-40s)");
+  const d2 = await api("/api/solve", "POST", {kind:"plan_files", idea:idea, level:el("plan-level").value, name:d.result.name, files_list:d.result.files_list});
+  state.plan.files = d2.result.files;
+  el("plan-files").textContent = Object.keys(d2.result.files).join("\n") + "\nTODO.md";
+  el("btn-repo").disabled = false;
+  toast("✅ Plan full ga ready — repo create cheyochu!");
 }));
+
+function btnPlanBusy(text){ el("btn-plan").innerHTML = text; }
 
 el("btn-repo").addEventListener("click", () => withBusy(el("btn-repo"), async () => {
   if (!state.plan) throw new Error("Mundhu plan generate chey");
