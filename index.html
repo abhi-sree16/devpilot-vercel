@@ -510,16 +510,25 @@ el("btn-plan").addEventListener("click", () => withBusy(el("btn-plan"), async ()
   (d.result.first_tasks || []).forEach(t => {
     const li = document.createElement("li"); li.textContent = t; ol.appendChild(li);
   });
-  el("plan-files").textContent = "⏳ files generate avtunnay… (20-30s)";
+  el("plan-files").textContent = "⏳ files generate avtunnay…";
   el("btn-repo").disabled = true;
   el("plan-box").scrollIntoView({behavior:"smooth"});
-  /* phase 2: file contents (separate call — Vercel 60s limit safe) */
-  btnPlanBusy("⏳ Files raastunnay… (20-40s)");
-  const d2 = await api("/api/solve", "POST", {kind:"plan_files", idea:idea, level:el("plan-level").value, name:d.result.name, files_list:d.result.files_list});
-  state.plan.files = d2.result.files;
-  el("plan-files").textContent = Object.keys(d2.result.files).join("\n") + "\nTODO.md";
+  /* phase 2: file contents — batches of 3 (prathi call light, Vercel limit safe) */
+  const list = d.result.files_list || [];
+  const batches = [];
+  for (let i = 0; i < list.length; i += 3) batches.push(list.slice(i, i + 3));
+  const files = {};
+  let done = 0;
+  for (const b of batches){
+    btnPlanBusy("⏳ Files " + (done + 1) + "–" + (done + b.length) + " / " + list.length + " raastunnay…");
+    const d2 = await api("/api/solve", "POST", {kind:"plan_files", idea:idea, level:el("plan-level").value, name:d.result.name, files_list:b, all_files:list});
+    Object.assign(files, d2.result.files);
+    done += b.length;
+    el("plan-files").textContent = Object.keys(files).join("\n") + (done < list.length ? "\n⏳ inka vastunnay…" : "\nTODO.md");
+  }
+  state.plan.files = files;
   el("btn-repo").disabled = false;
-  toast("✅ Plan full ga ready — repo create cheyochu!");
+  toast("✅ Full plan ready — " + list.length + " files + TODO!");
 }));
 
 function btnPlanBusy(text){ el("btn-plan").innerHTML = text; }
