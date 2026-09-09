@@ -18,11 +18,13 @@ app = FastAPI(title="DevPilot")
 GH_API = "https://api.github.com"
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
 # Model fallback chain — high-demand (503) unte automatic ga next model
+# (3.6-flash first: flash-latest sep-2026 lo stalls ayyindi — adaptive order kuda chuddu)
 GEMINI_MODELS = [
-    "gemini-flash-latest",
     "gemini-3.6-flash",
+    "gemini-flash-latest",
     "gemini-flash-lite-latest",
 ]
+_last_good_model = None  # ye model last work aindo — adhi first try (adaptive)
 LC_HEADERS = {
     "Content-Type": "application/json",
     "Referer": "https://leetcode.com",
@@ -49,12 +51,16 @@ def check_auth(request: Request):
 
 # ── LLM (free Gemini, OpenAI-compatible) ─────────────────────────────────
 def ask(prompt, max_tokens=6000):
+    global _last_good_model
     key = env("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY env var ledu — Vercel settings lo pettu")
     deadline = time.time() + 50  # HARD deadline — Vercel 60s function limit
     last_err = "no model tried"
-    for model in GEMINI_MODELS:
+    models = [m for m in GEMINI_MODELS if m != _last_good_model]
+    if _last_good_model:
+        models.insert(0, _last_good_model)
+    for model in models:
         remaining = deadline - time.time()
         if remaining < 8:  # inka attempt ki time ledu
             break
@@ -76,6 +82,7 @@ def ask(prompt, max_tokens=6000):
             except (KeyError, IndexError, ValueError):
                 content = ""
             if content:
+                _last_good_model = model  # idi work aindi — next time idi first
                 return content
             last_err = f"{model}: empty response (thinking tokens)"
             continue
