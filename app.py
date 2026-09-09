@@ -52,10 +52,11 @@ def ask(prompt, max_tokens=6000):
     key = env("GEMINI_API_KEY")
     if not key:
         raise RuntimeError("GEMINI_API_KEY env var ledu — Vercel settings lo pettu")
-    deadline = time.time() + 50  # Vercel 60s function limit — lopala ne fail avvam
+    deadline = time.time() + 50  # HARD deadline — Vercel 60s function limit
     last_err = "no model tried"
     for model in GEMINI_MODELS:
-        if time.time() > deadline:
+        remaining = deadline - time.time()
+        if remaining < 8:  # inka attempt ki time ledu
             break
         try:
             r = requests.post(
@@ -63,7 +64,7 @@ def ask(prompt, max_tokens=6000):
                 headers={"Authorization": f"Bearer {key}"},
                 json={"model": model, "max_tokens": max_tokens,
                       "messages": [{"role": "user", "content": prompt}]},
-                timeout=(10, 40))  # connect 10s, read 40s
+                timeout=(min(10, remaining), min(40, remaining)))  # deadline lopala ne
         except requests.RequestException:
             last_err = f"{model}: network/timeout"
             continue  # inko model try chey — time waste cheyaku
