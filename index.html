@@ -498,35 +498,49 @@ el("btn-commit").addEventListener("click", () => withBusy(el("btn-commit"), asyn
 el("btn-plan").addEventListener("click", () => withBusy(el("btn-plan"), async () => {
   const idea = el("plan-idea").value.trim();
   if (!idea) throw new Error("Project idea type chey");
-  /* phase 1: plan meta (fast) */
-  const d = await api("/api/solve", "POST", {kind:"plan", idea:idea, level:el("plan-level").value});
-  state.plan = d.result;
-  el("plan-box").classList.remove("hidden");
-  el("plan-success").classList.add("hidden");
-  el("plan-name").textContent = d.result.name;
-  el("plan-desc").textContent = d.result.description || "";
-  el("plan-pitch").textContent = d.result.pitch || "";
-  const ol = el("plan-tasks"); ol.innerHTML = "";
-  (d.result.first_tasks || []).forEach(t => {
-    const li = document.createElement("li"); li.textContent = t; ol.appendChild(li);
-  });
-  el("plan-files").textContent = "⏳ files generate avtunnay…";
-  el("btn-repo").disabled = true;
-  el("plan-box").scrollIntoView({behavior:"smooth"});
-  /* phase 2: file contents — batches of 3 (prathi call light, Vercel limit safe) */
-  const list = d.result.files_list || [];
+  const level = el("plan-level").value;
+  let plan = state.plan;
+  /* resume: same idea + incomplete files → phase 1 skip, remaining files matrame */
+  const canResume = plan && plan.files_list && plan.name &&
+    (state.planIdea || "") === idea &&
+    Object.keys(plan.files || {}).length < plan.files_list.length;
+  if (!canResume){
+    const d = await api("/api/solve", "POST", {kind:"plan", idea:idea, level:level});
+    plan = state.plan = d.result;
+    state.planIdea = idea;
+    plan.files = {};
+    el("plan-box").classList.remove("hidden");
+    el("plan-success").classList.add("hidden");
+    el("plan-name").textContent = plan.name;
+    el("plan-desc").textContent = plan.description || "";
+    el("plan-pitch").textContent = plan.pitch || "";
+    const ol = el("plan-tasks"); ol.innerHTML = "";
+    (plan.first_tasks || []).forEach(t => {
+      const li = document.createElement("li"); li.textContent = t; ol.appendChild(li);
+    });
+    el("plan-files").textContent = "⏳ files generate avtunnay…";
+    el("btn-repo").disabled = true;
+    el("plan-box").scrollIntoView({behavior:"smooth"});
+  }
+  /* phase 2: file contents — batches (advanced ki 2: files perige avasaram) */
+  const list = plan.files_list || [];
+  plan.files = plan.files || {};
+  const missing = list.filter(p => !plan.files[p]);
+  const batchSize = level === "advanced" ? 2 : 3;
   const batches = [];
-  for (let i = 0; i < list.length; i += 3) batches.push(list.slice(i, i + 3));
-  const files = {};
-  let done = 0;
+  for (let i = 0; i < missing.length; i += batchSize) batches.push(missing.slice(i, i + batchSize));
+  let done = list.length - missing.length;
   for (const b of batches){
     btnPlanBusy("⏳ Files " + (done + 1) + "–" + (done + b.length) + " / " + list.length + " raastunnay…");
-    const d2 = await api("/api/solve", "POST", {kind:"plan_files", idea:idea, level:el("plan-level").value, name:d.result.name, files_list:b, all_files:list});
-    Object.assign(files, d2.result.files);
+    try {
+      const d2 = await api("/api/solve", "POST", {kind:"plan_files", idea:idea, level:level, name:plan.name, files_list:b, all_files:list});
+      Object.assign(plan.files, d2.result.files);
+    } catch(err){
+      throw new Error(err.message + " — Generate Plan malli click chey, remaining files nunchi continue avtundi");
+    }
     done += b.length;
-    el("plan-files").textContent = Object.keys(files).join("\n") + (done < list.length ? "\n⏳ inka vastunnay…" : "\nTODO.md");
+    el("plan-files").textContent = Object.keys(plan.files).join("\n") + (done < list.length ? "\n⏳ inka vastunnay…" : "\nTODO.md");
   }
-  state.plan.files = files;
   el("btn-repo").disabled = false;
   toast("✅ Full plan ready — " + list.length + " files + TODO!");
 }));
