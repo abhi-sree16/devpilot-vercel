@@ -2,56 +2,105 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0a0e17">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05070d">
 <title>DevPilot</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
 <style>
   :root{
-    --bg:#0a0e17; --card:#101624; --card2:#151d2e; --border:#1f2a40;
-    --text:#e6ecf5; --muted:#8b98ad; --accent:#6c8cff; --accent2:#22d3ee;
-    --easy:#34d399; --medium:#fbbf24; --hard:#f87171; --ok:#34d399; --err:#f87171;
+    --bg:#05070d; --bg2:#0a0e1a;
+    --card:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+    --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.14);
+    --text:#e8eefb; --muted:#8a94ab;
+    --accent:#7c8cff; --accent2:#4dd6ff;
+    --easy:#34d399; --medium:#fbbf24; --hard:#f87171;
+    --ok:#34d399; --err:#f87171;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box; margin:0; padding:0}
-  html,body{background:var(--bg); color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    min-height:100vh}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg); color:var(--text); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
   .hidden{display:none !important}
+  a{color:var(--accent2)}
+  button{font-family:inherit}
+
+  /* ── Aurora background ── */
+  .aurora{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none;
+    background:radial-gradient(1200px 700px at 70% -10%, #0d1530 0%, transparent 55%),
+               radial-gradient(900px 600px at 10% 110%, #0a1626 0%, transparent 50%), var(--bg)}
+  .aurora::before, .aurora::after{content:""; position:absolute; width:55vmax; height:55vmax;
+    border-radius:50%; filter:blur(90px); opacity:.13}
+  .aurora::before{background:#4f6bff; top:-22vmax; left:-12vmax; animation:drift1 26s ease-in-out infinite alternate}
+  .aurora::after{background:#00c8ff; bottom:-26vmax; right:-14vmax; animation:drift2 34s ease-in-out infinite alternate}
+  @keyframes drift1{to{transform:translate(10vmax, 8vmax) scale(1.18)}}
+  @keyframes drift2{to{transform:translate(-9vmax, -7vmax) scale(1.12)}}
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar{width:10px; height:10px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12); border-radius:99px; border:2px solid transparent; background-clip:content-box}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.22); border:2px solid transparent; background-clip:content-box}
 
   /* ── Password gate ── */
-  #gate{position:fixed; inset:0; z-index:100; background:radial-gradient(1200px 600px at 50% -10%, #16223d 0%, var(--bg) 60%);
-    display:flex; align-items:center; justify-content:center; padding:20px}
-  .gate-card{width:100%; max-width:380px; background:var(--card); border:1px solid var(--border);
-    border-radius:16px; padding:32px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5)}
-  .gate-logo{font-size:40px}
-  .gate-card h1{font-size:22px; margin:10px 0 4px;
+  #gate{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px}
+  .gate-card{width:100%; max-width:380px; background:var(--card); border:1px solid var(--border2);
+    border-radius:22px; padding:36px 32px; text-align:center; backdrop-filter:blur(18px);
+    box-shadow:0 30px 80px rgba(0,0,0,.55); animation:cardIn .55s cubic-bezier(.2,.9,.3,1.15) both}
+  @keyframes cardIn{from{opacity:0; transform:translateY(26px) scale(.96)}}
+  .gate-logo{font-size:46px; animation:floaty 3.6s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-9px) rotate(5deg)}}
+  .gate-card h1{font-size:23px; margin:12px 0 4px; letter-spacing:.3px;
     background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
-  .gate-card p{color:var(--muted); font-size:13px; margin-bottom:20px}
+  .gate-card p{color:var(--muted); font-size:13px; margin-bottom:22px}
   #gate-err{color:var(--err); font-size:13px; min-height:18px; margin-bottom:10px}
 
-  /* ── Nav ── */
-  nav{position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:6px;
-    padding:12px 20px; background:rgba(10,14,23,.85); backdrop-filter:blur(10px);
-    border-bottom:1px solid var(--border); overflow-x:auto}
-  .brand{font-weight:800; font-size:18px; margin-right:16px; white-space:nowrap;
+  /* ── Top nav (desktop) ── */
+  .topnav{position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:4px;
+    padding:10px 22px; background:rgba(6,9,16,.72); backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border)}
+  .brand{font-weight:800; font-size:18px; margin-right:18px; white-space:nowrap; letter-spacing:.2px;
     background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
-  .tab{padding:8px 14px; border-radius:10px; border:1px solid transparent; background:none;
-    color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap}
-  .tab:hover{color:var(--text)}
-  .tab.active{color:var(--text); background:var(--card2); border-color:var(--border)}
-  nav .spacer{flex:1}
-  .lock-btn{padding:8px 12px; border-radius:10px; background:var(--card2); border:1px solid var(--border);
-    color:var(--muted); cursor:pointer; font-size:14px; white-space:nowrap}
-  .lock-btn:hover{color:var(--text)}
+  .tab{padding:8px 15px; border-radius:11px; border:1px solid transparent; background:none;
+    color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;
+    transition:all .18s ease}
+  .tab:hover{color:var(--text); background:rgba(255,255,255,.05)}
+  .tab.active{color:var(--text); background:rgba(124,140,255,.13); border-color:rgba(124,140,255,.3)}
+  .topnav .spacer{flex:1}
+  .lock-btn{padding:8px 13px; border-radius:11px; background:rgba(255,255,255,.04); border:1px solid var(--border);
+    color:var(--muted); cursor:pointer; font-size:14px; white-space:nowrap; transition:all .18s}
+  .lock-btn:hover{color:var(--text); border-color:var(--border2)}
+
+  /* ── Mobile header + bottom nav ── */
+  .mhead{display:none}
+  .bottomnav{display:none}
+  @media(max-width:760px){
+    .topnav{display:none}
+    .mhead{display:flex; position:sticky; top:0; z-index:50; justify-content:space-between; align-items:center;
+      padding:11px 16px; background:rgba(6,9,16,.78); backdrop-filter:blur(16px); border-bottom:1px solid var(--border)}
+    .bottomnav{display:flex; position:fixed; bottom:0; left:0; right:0; z-index:60;
+      background:rgba(7,10,18,.92); backdrop-filter:blur(18px); border-top:1px solid var(--border);
+      padding:6px 8px calc(7px + env(safe-area-inset-bottom)); justify-content:space-around}
+    .bottomnav .tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+      font-size:10px; font-weight:600; padding:7px 2px; border-radius:13px; letter-spacing:.2px}
+    .bottomnav .tab .ico{font-size:21px}
+    .bottomnav .tab.active{color:var(--accent2); background:rgba(77,214,255,.09)}
+    main{padding-bottom:96px}
+    footer{padding-bottom:110px}
+  }
 
   /* ── Layout ── */
   main{max-width:1080px; margin:0 auto; padding:28px 20px 60px}
-  .page-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; flex-wrap:wrap}
-  .page-head h1{font-size:24px}
-  .page-head .sub{color:var(--muted); font-size:13px; margin-top:4px}
-  .card{background:var(--card); border:1px solid var(--border); border-radius:14px;
-    padding:20px; margin-bottom:18px}
-  .card h3{font-size:16px; margin-bottom:12px}
-  .card h4{font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:16px 0 8px}
+  .page{animation:fadeUp .45s cubic-bezier(.16,.8,.3,1) both}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(16px)}}
+  .page-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; flex-wrap:wrap}
+  .page-head h1{font-size:25px; letter-spacing:-.3px}
+  .page-head .sub{color:var(--muted); font-size:13px; margin-top:5px}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:22px; margin-bottom:18px; backdrop-filter:blur(14px);
+    box-shadow:0 8px 32px rgba(0,0,0,.28)}
+  .card h3{font-size:16px; margin-bottom:13px; letter-spacing:-.1px}
+  .card h4{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin:18px 0 9px}
   .sub{color:var(--muted); font-size:13px}
   .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
   @media(max-width:760px){.grid-2{grid-template-columns:1fr}}
@@ -59,76 +108,100 @@
   /* ── Stats ── */
   .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px}
   @media(max-width:760px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
-  .stat{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px;
-    display:flex; align-items:center; gap:14px}
-  .stat-icon{font-size:26px}
-  .stat-num{font-size:26px; font-weight:800}
-  .stat-label{color:var(--muted); font-size:12px; margin-top:2px}
+  .stat{background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px;
+    display:flex; align-items:center; gap:14px; backdrop-filter:blur(14px);
+    transition:border-color .25s ease, transform .25s ease}
+  .stat:hover{border-color:rgba(124,140,255,.35); transform:translateY(-2px)}
+  .stat-icon{width:46px; height:46px; flex-shrink:0; display:grid; place-items:center; border-radius:13px;
+    background:linear-gradient(135deg, rgba(124,140,255,.22), rgba(77,214,255,.10));
+    border:1px solid rgba(124,140,255,.28); font-size:21px}
+  .stat-num{font-size:27px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums}
+  .stat-label{color:var(--muted); font-size:11.5px; margin-top:2px; letter-spacing:.3px}
+  .pulse{animation:pulse 2.2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 
   /* ── Badges / bars ── */
-  .badge{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:700}
-  .badge.easy{background:rgba(52,211,153,.12); color:var(--easy)}
-  .badge.medium{background:rgba(251,191,36,.12); color:var(--medium)}
-  .badge.hard{background:rgba(248,113,113,.12); color:var(--hard)}
-  .badge.solved{background:rgba(52,211,153,.12); color:var(--easy); margin-left:8px}
-  .bar-row{display:flex; align-items:center; gap:10px; margin:8px 0; font-size:13px}
+  .badge{display:inline-block; padding:3px 11px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:.3px}
+  .badge.easy{background:rgba(52,211,153,.13); color:var(--easy); box-shadow:0 0 14px rgba(52,211,153,.15)}
+  .badge.medium{background:rgba(251,191,36,.13); color:var(--medium); box-shadow:0 0 14px rgba(251,191,36,.13)}
+  .badge.hard{background:rgba(248,113,113,.13); color:var(--hard); box-shadow:0 0 14px rgba(248,113,113,.15)}
+  .badge.solved{background:rgba(52,211,153,.13); color:var(--easy); margin-left:8px; box-shadow:0 0 14px rgba(52,211,153,.15)}
+  .bar-row{display:flex; align-items:center; gap:10px; margin:9px 0; font-size:13px}
   .bar-row .lbl{width:64px; color:var(--muted)}
-  .bar-track{flex:1; height:8px; background:var(--card2); border-radius:99px; overflow:hidden}
-  .bar-fill{height:100%; border-radius:99px}
-  .bar-row .val{width:36px; text-align:right; font-weight:700}
+  .bar-track{flex:1; height:8px; background:rgba(255,255,255,.06); border-radius:99px; overflow:hidden}
+  .bar-fill{height:100%; border-radius:99px; transition:width .8s cubic-bezier(.2,.8,.3,1)}
+  .bar-row .val{width:38px; text-align:right; font-weight:700; font-variant-numeric:tabular-nums}
 
   .recent-list{list-style:none}
-  .recent-list li{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px}
+  .recent-list li{display:flex; align-items:center; gap:10px; padding:10px 0;
+    border-bottom:1px solid var(--border); font-size:13px}
   .recent-list li:last-child{border-bottom:none}
   .recent-list .d{color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
 
   /* ── Forms / buttons ── */
-  label{display:block; font-size:12px; color:var(--muted); margin:14px 0 6px; font-weight:600}
-  textarea,input,select{width:100%; background:var(--card2); border:1px solid var(--border);
-    border-radius:10px; color:var(--text); padding:10px 12px; font-size:14px; font-family:inherit; outline:none}
-  textarea{min-height:90px; resize:vertical; line-height:1.5}
-  textarea:focus,input:focus,select:focus{border-color:var(--accent)}
-  .btn{display:inline-block; padding:10px 18px; border-radius:10px; border:none; cursor:pointer;
-    font-size:14px; font-weight:700; color:#fff; margin-top:14px; margin-right:8px;
-    background:linear-gradient(90deg,#5b7cfa,#3ec6e8)}
-  .btn:hover{filter:brightness(1.1)}
-  .btn:disabled{opacity:.45; cursor:not-allowed}
-  .btn.ghost{background:var(--card2); border:1px solid var(--border); color:var(--text)}
-  .btn.sm{padding:6px 12px; font-size:12px; margin-top:0}
+  label{display:block; font-size:12px; color:var(--muted); margin:15px 0 7px; font-weight:600; letter-spacing:.3px}
+  textarea,input,select{width:100%; background:rgba(255,255,255,.04); border:1px solid var(--border);
+    border-radius:12px; color:var(--text); padding:11px 13px; font-size:14px; font-family:inherit; outline:none;
+    transition:border-color .2s ease, box-shadow .2s ease}
+  textarea{min-height:92px; resize:vertical; line-height:1.55}
+  textarea:focus,input:focus,select:focus{border-color:rgba(124,140,255,.55); box-shadow:0 0 0 3px rgba(124,140,255,.12)}
+  .btn{display:inline-block; padding:11px 19px; border-radius:12px; border:none; cursor:pointer;
+    font-size:14px; font-weight:700; color:#fff; margin-top:15px; margin-right:8px; letter-spacing:.2px;
+    background:linear-gradient(92deg,#5b7cfa,#3ec6e8);
+    box-shadow:0 4px 18px rgba(91,124,250,.28);
+    transition:transform .16s ease, filter .2s ease, box-shadow .2s ease}
+  .btn:hover{filter:brightness(1.13); box-shadow:0 7px 26px rgba(91,124,250,.4)}
+  .btn:active{transform:scale(.965)}
+  .btn:disabled{opacity:.4; cursor:not-allowed; filter:grayscale(.4)}
+  .btn.ghost{background:rgba(255,255,255,.05); border:1px solid var(--border2); box-shadow:none; color:var(--text)}
+  .btn.ghost:hover{background:rgba(255,255,255,.09); box-shadow:none; border-color:rgba(255,255,255,.22)}
+  .btn.sm{padding:7px 13px; font-size:12px; margin-top:0}
   .row-btns{margin:4px 0 18px}
   .row-between{display:flex; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap:wrap; gap:8px}
 
   /* ── Code / prose ── */
-  .code-wrap{position:relative; background:#0b0f19; border:1px solid var(--border); border-radius:10px; overflow:auto}
-  .code-wrap pre{padding:14px; font-size:12.5px; line-height:1.55; white-space:pre-wrap; word-break:break-word}
-  .code-wrap code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-  .copy{position:sticky; float:right; top:6px; right:6px; margin:6px; padding:4px 10px; font-size:11px;
-    background:var(--card2); border:1px solid var(--border); border-radius:7px; color:var(--muted); cursor:pointer}
-  .copy:hover{color:var(--text)}
+  .code-wrap{background:rgba(3,5,10,.72); border:1px solid var(--border); border-radius:13px; overflow:auto}
+  .code-head{display:flex; justify-content:space-between; align-items:center; gap:8px;
+    padding:8px 8px 8px 14px; border-bottom:1px solid var(--border);
+    font-family:var(--mono); font-size:11px; color:var(--muted); background:rgba(255,255,255,.02)}
+  .code-wrap pre{padding:15px; font-size:12.5px; line-height:1.6; white-space:pre-wrap; word-break:break-word}
+  .code-wrap code{font-family:var(--mono)}
+  .copy{padding:4px 11px; font-size:11px; font-weight:600;
+    background:rgba(255,255,255,.05); border:1px solid var(--border2); border-radius:8px;
+    color:var(--muted); cursor:pointer; transition:all .15s}
+  .copy:hover{color:var(--text); border-color:rgba(255,255,255,.25)}
   .prose{white-space:pre-wrap; font-size:14px; line-height:1.65}
   .prose-pre{white-space:pre-wrap; font-size:13.5px; line-height:1.6; font-family:inherit}
 
-  .file-tree{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px;
-    background:#0b0f19; border:1px solid var(--border); border-radius:10px; padding:12px 14px; line-height:1.8}
-  .plan-tasks{margin:0 0 0 18px; font-size:13.5px; line-height:1.8}
+  .file-tree{font-family:var(--mono); font-size:12.5px; line-height:1.9;
+    background:rgba(3,5,10,.72); border:1px solid var(--border); border-radius:13px; padding:13px 16px}
+  .plan-tasks{margin-left:18px; font-size:13.5px; line-height:1.85}
 
   .success-box{border:1px solid rgba(52,211,153,.35); background:rgba(52,211,153,.07);
-    border-radius:10px; padding:12px 14px; margin-top:14px; font-size:13.5px}
-  .success-box a{color:var(--accent2)}
+    border-radius:12px; padding:13px 15px; margin-top:15px; font-size:13.5px;
+    animation:fadeUp .4s ease both}
+
+  /* ── Skeleton ── */
+  .skel{height:14px; border-radius:8px; margin:11px 0;
+    background:linear-gradient(90deg, rgba(255,255,255,.05) 25%, rgba(255,255,255,.11) 50%, rgba(255,255,255,.05) 75%);
+    background-size:200% 100%; animation:shimmer 1.5s infinite}
+  @keyframes shimmer{to{background-position:-200% 0}}
 
   /* ── Toast ── */
   #toast{position:fixed; bottom:24px; right:24px; z-index:200; max-width:360px;
-    background:var(--card2); border:1px solid var(--border); border-left:4px solid var(--accent);
-    border-radius:10px; padding:12px 16px; font-size:13.5px; box-shadow:0 10px 30px rgba(0,0,0,.5);
-    opacity:0; transform:translateY(10px); transition:all .25s; pointer-events:none}
-  #toast.show{opacity:1; transform:translateY(0)}
+    background:rgba(16,22,38,.92); border:1px solid var(--border2); border-left:4px solid var(--accent);
+    border-radius:13px; padding:13px 17px; font-size:13.5px; backdrop-filter:blur(14px);
+    box-shadow:0 14px 40px rgba(0,0,0,.5);
+    opacity:0; transform:translateY(16px) scale(.97); pointer-events:none;
+    transition:all .32s cubic-bezier(.2,.9,.3,1.25)}
+  #toast.show{opacity:1; transform:none}
   #toast.error{border-left-color:var(--err)}
 
-  footer{text-align:center; color:var(--muted); font-size:12px; padding:20px; border-top:1px solid var(--border)}
-  a{color:var(--accent2)}
+  footer{text-align:center; color:var(--muted); font-size:12px; padding:22px; border-top:1px solid var(--border); letter-spacing:.3px}
 </style>
 </head>
 <body>
+<div class="aurora"></div>
 
 <!-- ═══ Password gate ═══ -->
 <div id="gate" class="hidden">
@@ -144,15 +217,23 @@
 
 <!-- ═══ App ═══ -->
 <div id="app" class="hidden">
-  <nav>
+
+  <!-- desktop nav -->
+  <nav class="topnav">
     <span class="brand">✈️ DevPilot</span>
     <button class="tab active" data-page="dash">Dashboard</button>
     <button class="tab" data-page="leetcode">LeetCode</button>
     <button class="tab" data-page="projects">Projects</button>
     <button class="tab" data-page="posts">Posts</button>
     <span class="spacer"></span>
-    <button class="lock-btn" id="lock-btn" title="Password marchali antey">🔒 Lock</button>
+    <button class="lock-btn lock" title="Password marchali antey">🔒 Lock</button>
   </nav>
+
+  <!-- mobile header -->
+  <header class="mhead">
+    <span class="brand">✈️ DevPilot</span>
+    <button class="lock-btn lock">🔒</button>
+  </header>
 
   <main>
     <!-- ─── Dashboard ─── -->
@@ -165,7 +246,7 @@
         <button class="btn ghost sm" id="dash-refresh">↻ Refresh</button>
       </div>
       <div class="stat-grid">
-        <div class="stat"><div class="stat-icon">🔥</div><div><div class="stat-num" id="stat-streak">–</div><div class="stat-label">Day Streak</div></div></div>
+        <div class="stat"><div class="stat-icon" id="ico-streak">🔥</div><div><div class="stat-num" id="stat-streak">–</div><div class="stat-label">Day Streak</div></div></div>
         <div class="stat"><div class="stat-icon">📦</div><div><div class="stat-num" id="stat-solved">–</div><div class="stat-label">Repo Solutions</div></div></div>
         <div class="stat"><div class="stat-icon">✍️</div><div><div class="stat-num" id="stat-posts">–</div><div class="stat-label">LinkedIn Drafts</div></div></div>
         <div class="stat"><div class="stat-icon">🧠</div><div><div class="stat-num" id="stat-total">–</div><div class="stat-label">LeetCode Solved</div></div></div>
@@ -173,12 +254,12 @@
       <div class="grid-2">
         <div class="card">
           <h3>LeetCode Profile</h3>
-          <div id="lc-profile" class="sub">Loading…</div>
+          <div id="lc-profile" class="sub"></div>
         </div>
         <div class="card">
           <h3>Recent Solutions <span class="sub">(repo LOG.md)</span></h3>
           <ul class="recent-list" id="dash-recent"></ul>
-          <div style="margin-top:14px"><a class="btn ghost sm" id="repo-link" target="_blank" rel="noopener">Open repo ↗</a></div>
+          <div style="margin-top:15px"><a class="btn ghost sm" id="repo-link" target="_blank" rel="noopener">Open repo ↗</a></div>
         </div>
       </div>
     </section>
@@ -188,11 +269,11 @@
       <div class="page-head">
         <div>
           <h1>LeetCode Daily</h1>
-          <p class="sub">rodhu oka problem — hints / solution → GitHub commit → streak maintained</p>
+          <p class="sub">rodhu oka problem — solve → commit → streak</p>
         </div>
         <button class="btn ghost sm" id="daily-refresh">↻ Refresh</button>
       </div>
-      <div class="card" id="daily-card"><p class="sub">Loading today's problem…</p></div>
+      <div class="card" id="daily-card"></div>
       <div class="row-btns">
         <button class="btn ghost" id="btn-hints" data-busy="⏳ Hints raavatam…">💡 Hints</button>
         <button class="btn" id="btn-solution" data-busy="⏳ Generating… (30-60s)">⚡ Full Solution</button>
@@ -207,9 +288,15 @@
         <p style="font-size:14px; line-height:1.6"><b>Approach:</b> <span id="sol-approach"></span></p>
         <p style="font-size:14px; line-height:1.6; margin-top:8px"><b>Complexity:</b> <span id="sol-complexity"></span></p>
         <h4>Python 3</h4>
-        <div class="code-wrap"><button class="copy" data-copy="sol-code">Copy</button><pre><code id="sol-code"></code></pre></div>
+        <div class="code-wrap">
+          <div class="code-head"><span>solution.py</span><button class="copy" data-copy="sol-code">Copy</button></div>
+          <pre><code id="sol-code"></code></pre>
+        </div>
         <h4>LinkedIn Post <span class="sub">(Posts page lo edit cheyochu)</span></h4>
-        <div class="code-wrap"><button class="copy" data-copy="post-preview">Copy</button><pre class="prose-pre" id="post-preview"></pre></div>
+        <div class="code-wrap">
+          <div class="code-head"><span>linkedin_post</span><button class="copy" data-copy="post-preview">Copy</button></div>
+          <pre class="prose-pre" id="post-preview"></pre>
+        </div>
       </div>
     </section>
 
@@ -258,7 +345,10 @@
         <h4>Next Steps</h4>
         <ul class="plan-tasks" id="prog-next" style="list-style:disc"></ul>
         <h4>LinkedIn Post</h4>
-        <div class="code-wrap"><button class="copy" data-copy="prog-post">Copy</button><pre class="prose-pre" id="prog-post"></pre></div>
+        <div class="code-wrap">
+          <div class="code-head"><span>linkedin_post</span><button class="copy" data-copy="prog-post">Copy</button></div>
+          <pre class="prose-pre" id="prog-post"></pre>
+        </div>
         <button class="btn" id="btn-push-progress" data-busy="⏳ Pushing…">Push to PROGRESS.md</button>
         <div class="success-box hidden" id="prog-success"></div>
       </div>
@@ -271,7 +361,7 @@
           <h1>LinkedIn Posts</h1>
           <p class="sub">draft → GitHub lo save → copy chesi LinkedIn lo post</p>
         </div>
-        <button class="btn ghost sm" id="btn-load-solution">↺ Load today's solution post</button>
+        <button class="btn ghost sm" id="btn-load-solution">↺ Load today's post</button>
       </div>
       <div class="card">
         <label>Draft</label>
@@ -290,7 +380,15 @@
     </section>
   </main>
 
-  <footer>DevPilot · Vercel edition · daily → GitHub → LinkedIn, on autopilot</footer>
+  <!-- mobile bottom nav -->
+  <nav class="bottomnav">
+    <button class="tab active" data-page="dash"><span class="ico">📊</span><span>Home</span></button>
+    <button class="tab" data-page="leetcode"><span class="ico">🧩</span><span>LeetCode</span></button>
+    <button class="tab" data-page="projects"><span class="ico">📦</span><span>Projects</span></button>
+    <button class="tab" data-page="posts"><span class="ico">✍️</span><span>Posts</span></button>
+  </nav>
+
+  <footer>DevPilot v2 · Vercel · daily → GitHub → LinkedIn, on autopilot</footer>
 </div>
 
 <div id="toast"></div>
@@ -299,7 +397,7 @@
 "use strict";
 const el = id => document.getElementById(id);
 let PW = localStorage.getItem("dp_pass") || "";
-const state = {problem:null, solution:null, plan:null, lastProgress:null, loaded:{}};
+const state = {problem:null, solution:null, plan:null, planIdea:"", lastProgress:null, loaded:{}};
 
 /* ── API helper ─────────────────────────────────────────── */
 async function api(path, method, body){
@@ -332,6 +430,18 @@ async function withBusy(btn, fn){
   finally { btn.disabled = false; btn.innerHTML = orig; }
 }
 
+/* ── Animations ─────────────────────────────────────────── */
+function countUp(elm, target){
+  const t = parseInt(String(target).replace(/[^0-9]/g, ""), 10) || 0;
+  const dur = 850, t0 = performance.now();
+  (function step(now){
+    const p = Math.min(1, (now - t0) / dur);
+    elm.textContent = Math.round(t * (1 - Math.pow(1 - p, 3))).toLocaleString("en-US");
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+function skel(n, w){ let h = ""; for (let i = 0; i < (n || 3); i++) h += '<div class="skel" style="width:' + (w || "70%") + '"></div>'; return h; }
+
 /* ── Password gate ──────────────────────────────────────── */
 function showGate(err){
   el("gate").classList.remove("hidden");
@@ -358,11 +468,11 @@ el("gate-form").addEventListener("submit", async e => {
     el("gate-err").textContent = err.message || "Password wrong appudu!";
   }
 });
-el("lock-btn").addEventListener("click", () => {
+document.querySelectorAll(".lock-btn").forEach(b => b.addEventListener("click", () => {
   PW = "";
   localStorage.removeItem("dp_pass");
   showGate("Locked — password pettu");
-});
+}));
 
 /* ── Navigation ─────────────────────────────────────────── */
 document.querySelectorAll(".tab").forEach(tab => {
@@ -372,6 +482,7 @@ function showPage(name){
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.page === name));
   document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
   el("page-" + name).classList.remove("hidden");
+  window.scrollTo({top:0, behavior:"smooth"});
   if (name === "dash" && !state.loaded.dash) loadDash();
   if (name === "leetcode" && !state.loaded.daily) loadDaily();
   if (name === "posts") initPosts();
@@ -393,16 +504,18 @@ document.addEventListener("click", async e => {
 /* ═══ DASHBOARD ═══ */
 async function loadDash(){
   el("dash-date").textContent = "syncing…";
+  el("lc-profile").innerHTML = skel(4);
   try {
     const d = await api("/api/stats");
     state.loaded.dash = true;
     el("dash-date").textContent = "📅 " + (d.today || "");
-    el("stat-streak").textContent = d.streak;
-    el("stat-solved").textContent = d.solved;
-    el("stat-posts").textContent = d.posts;
+    countUp(el("stat-streak"), d.streak);
+    countUp(el("stat-solved"), d.solved);
+    countUp(el("stat-posts"), d.posts);
     const lc = d.leetcode || {};
     const st = lc.stats || {};
-    el("stat-total").textContent = st.All != null ? st.All : "–";
+    countUp(el("stat-total"), st.All != null ? st.All : 0);
+    el("ico-streak").classList.toggle("pulse", (d.streak || 0) > 0);
     el("repo-link").href = "https://github.com/" + (d.repo || "");
     const rank = lc.rank ? lc.rank.toLocaleString("en-US") : "–";
     el("lc-profile").innerHTML =
@@ -435,7 +548,7 @@ el("dash-refresh").addEventListener("click", () => withBusy(el("dash-refresh"), 
 /* ═══ LEETCODE ═══ */
 async function loadDaily(){
   const card = el("daily-card");
-  card.innerHTML = '<p class="sub">Loading today\u2019s problem…</p>';
+  card.innerHTML = skel(4);
   try {
     const d = await api("/api/daily");
     state.loaded.daily = true;
@@ -446,14 +559,13 @@ async function loadDaily(){
       '<h3 style="margin:0">' + d.num + ". " + esc(d.title) + "</h3>" +
       '<span class="badge ' + diff + '">' + esc(d.difficulty) + "</span>" +
       (d.already_solved ? '<span class="badge solved">✓ Solved</span>' : "") + "</div>" +
-      '<p class="sub" style="margin-top:6px">📅 ' + esc(d.date) + ' · <a href="https://leetcode.com' + d.link + '" target="_blank" rel="noopener">Solve on LeetCode ↗</a></p>' +
-      '<div class="prose sub" style="margin-top:12px; max-height:320px; overflow:auto">' + esc(d.content || "") + "</div>";
-    /* prior solution unte commit button enable */
+      '<p class="sub" style="margin-top:7px">📅 ' + esc(d.date) + ' · <a href="https://leetcode.com' + d.link + '" target="_blank" rel="noopener">Solve on LeetCode ↗</a></p>' +
+      '<div class="prose sub" style="margin-top:13px; max-height:320px; overflow:auto">' + esc(d.content || "") + "</div>";
     const last = JSON.parse(localStorage.getItem("dp_last_solution") || "null");
     if (last && last.problem && last.problem.slug === d.slug){
       state.solution = last.solution;
       renderSolution(last.solution);
-      toast("✨ Yesterday/earlier generated solution vachesindi — leda malli generate chey");
+      toast("✨ Earlier generated solution vachesindi — leda malli generate chey");
     }
   } catch(e){ card.innerHTML = '<p class="sub">❌ ' + esc(e.message) + "</p>"; }
 }
@@ -482,6 +594,7 @@ function renderSolution(sol){
   el("sol-code").textContent = sol.code || "";
   el("post-preview").textContent = sol.linkedin_post || "";
   el("btn-commit").disabled = false;
+  el("sol-box").scrollIntoView({behavior:"smooth", block:"nearest"});
 }
 
 el("btn-commit").addEventListener("click", () => withBusy(el("btn-commit"), async () => {
@@ -518,7 +631,7 @@ el("btn-plan").addEventListener("click", () => withBusy(el("btn-plan"), async ()
     (plan.first_tasks || []).forEach(t => {
       const li = document.createElement("li"); li.textContent = t; ol.appendChild(li);
     });
-    el("plan-files").textContent = "⏳ files generate avtunnay…";
+    el("plan-files").innerHTML = skel(3);
     el("btn-repo").disabled = true;
     el("plan-box").scrollIntoView({behavior:"smooth"});
   }
