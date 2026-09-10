@@ -305,55 +305,6 @@ First person, <120 words, hook line first, one practical lesson, max 2 emojis,
 3-5 hashtags tho end chey. "I am thrilled to share" lanti clichés vaddu.""")
             return {"ok": True, "result": text}
 
-        if kind == "plan":
-            # PHASE 1: meta + file list matrame (light → fast).
-            # (Anni files content okate call lo 90s+ padutundi, Vercel 60s limit dhaati — so 2 phases)
-            data = ask_json(f"""Design a portfolio project.
-Idea: {body['idea']}
-Level: {body.get('level', 'beginner')}
-
-ALL OUTPUT IN ENGLISH — natural, like a real developer wrote it. No AI feel, no emoji spam.
-JSON keys:
-- name: short kebab-case GitHub repo name
-- description: one line repo description (casual professional English)
-- pitch: why this impresses recruiters, 3-4 lines, English
-- files_list: array of 6-8 file paths — real complete project structure: README.md, correct extensions, folders (src/ etc.), core logic + styles + config anni cover chey
-- first_tasks: 5 concrete next tasks, English""",
-                ["name", "description", "pitch", "files_list", "first_tasks"])
-            data["name"] = re.sub(r"[^a-zA-Z0-9-]", "-", str(data.get("name", "new-project"))).strip("-").lower() or "new-project"
-            if not isinstance(data.get("files_list"), list) or not data["files_list"]:
-                data["files_list"] = ["README.md", "index.html", "style.css", "app.js"]
-            data["files_list"] = [re.sub(r"\.\.", "", str(p)).lstrip("/") for p in data["files_list"]][:9]
-            return {"ok": True, "result": data}
-
-        if kind == "plan_files":
-            # PHASE 2: batch of 3 files content (frontend batches istundi — prathi call light)
-            data = ask_json(f"""Project "{body.get('name', '')}" (idea: {body.get('idea', '')}, level: {body.get('level', 'beginner')}).
-Project structure (already decided): {body.get('all_files', body['files_list'])}
-Write COMPLETE contents for EXACTLY these files: {body["files_list"]}
-
-STYLE — this goes to a public GitHub repo, must look 100% human-written:
-- Everything in English
-- Code like real developers write: minimal comments, only where genuinely needed
-- NO AI-style writing: "Certainly", "This project leverages", "In this file we will", "Let's", excessive bullets, emoji spam
-- README.md: short and practical — what it does, quick start steps. No badge walls, no hype.
-
-JSON keys:
-- files: JSON object path: content. Real working code — full logic, functions, imports. Each file under 60 lines.""",
-                ["files"], max_tokens=4500)
-            return {"ok": True, "result": data}
-            data["name"] = re.sub(r"[^a-zA-Z0-9-]", "-", str(data.get("name", "new-project"))).strip("-").lower() or "new-project"
-            return {"ok": True, "result": data}
-
-        if kind == "progress":
-            data = ask_json(
-                f'Project "{body["repo"]}" — what I worked on: {body["did"]}\n'
-                'summary and next MUST be in ENGLISH (they get pushed to the public repo PROGRESS.md). '
-                'JSON keys: summary (3 bullets, English), next (3 next steps, English), '
-                'linkedin_post (build-in-public post <100 words)',
-                ["summary", "next", "linkedin_post"])
-            return {"ok": True, "result": data}
-
         return {"ok": False, "error": f"unknown kind: {kind}"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -398,30 +349,6 @@ async def api_github(request: Request):
             if r.status_code not in (201, 422):
                 raise RuntimeError(f"Repo create fail: {r.json().get('message', r.status_code)}")
             return {"ok": True, "url": f"https://github.com/{gh_repo_full(env('GITHUB_REPO'))}"}
-
-        if action == "project_repo":
-            plan = body["plan"]
-            r = requests.post(f"{GH_API}/user/repos", headers=gh_headers(),
-                              json={"name": plan["name"],
-                                    "description": str(plan.get("description", ""))},
-                              timeout=30)
-            if r.status_code not in (201, 422):
-                raise RuntimeError(f"Repo create fail: {r.json().get('message', r.status_code)} — "
-                                   "token ki 'repo' scope kavali")
-            for i, (path, content) in enumerate(plan["files"].items()):
-                upsert_file(plan["name"], path,
-                            "initial commit" if i == 0 else f"add {path}", content)
-            upsert_file(plan["name"], "TODO.md", "update TODO.md",
-                        "\n".join(f"- [ ] {t}" for t in plan.get("first_tasks", [])))
-            return {"ok": True, "url": f"https://github.com/{gh_repo_full(plan['name'])}"}
-
-        if action == "progress":
-            repo = body["repo"]
-            old = read_file(repo, "PROGRESS.md") or "# Progress\n"
-            upsert_file(repo, "PROGRESS.md", "update PROGRESS.md",
-                        old + f"\n## {date.today().isoformat()}\n"
-                        + "\n".join(f"- {s}" for s in body["summary"]) + "\n")
-            return {"ok": True, "url": f"https://github.com/{gh_repo_full(repo)}"}
 
         return {"ok": False, "error": f"unknown action: {action}"}
     except Exception as e:
