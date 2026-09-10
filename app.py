@@ -110,7 +110,7 @@ def fetch_daily():
         "https://leetcode.com/graphql",
         json={"query": """query { activeDailyCodingChallengeQuestion { date link
           question { questionFrontendId title titleSlug difficulty content } } }"""},
-        headers=LC_HEADERS, timeout=20)
+        headers=LC_HEADERS, timeout=15)
     r.raise_for_status()
     q = (r.json().get("data") or {}).get("activeDailyCodingChallengeQuestion")
     if not q or not q.get("question"):
@@ -125,7 +125,7 @@ def lc_recent_ac(username, limit=20):
             json={"query": "query($u:String!){ recentAcSubmissionList(username:$u, "
                            "limit:%d){ title titleSlug timestamp } }" % limit,
                   "variables": {"u": username}},
-            headers=LC_HEADERS, timeout=15)
+            headers=LC_HEADERS, timeout=10)
         return ((r.json().get("data") or {}).get("recentAcSubmissionList")) or []
     except Exception:
         return []
@@ -139,7 +139,7 @@ def lc_stats(username):
                 username profile{ ranking }
                 submitStats{ acSubmissionNum{ difficulty count } } } }""",
                   "variables": {"u": username}},
-            headers=LC_HEADERS, timeout=15)
+            headers=LC_HEADERS, timeout=10)
         return (r.json().get("data") or {}).get("matchedUser")
     except Exception:
         return None
@@ -157,7 +157,7 @@ def gh_headers():
 def gh_owner():
     global _owner
     if not _owner:
-        r = requests.get(f"{GH_API}/user", headers=gh_headers(), timeout=20)
+        r = requests.get(f"{GH_API}/user", headers=gh_headers(), timeout=12)
         r.raise_for_status()
         _owner = r.json()["login"]
     return _owner
@@ -169,7 +169,7 @@ def gh_repo_full(name):
 
 def upsert_file(repo, path, msg, content):
     url = f"{GH_API}/repos/{gh_repo_full(repo)}/contents/{path}"
-    get = requests.get(url, headers=gh_headers(), timeout=20)
+    get = requests.get(url, headers=gh_headers(), timeout=12)
     body = {"message": msg, "content": _b64(content)}
     if get.status_code == 200:
         body["sha"] = get.json()["sha"]
@@ -181,7 +181,7 @@ def upsert_file(repo, path, msg, content):
 
 def read_file(repo, path):
     url = f"{GH_API}/repos/{gh_repo_full(repo)}/contents/{path}"
-    r = requests.get(url, headers=gh_headers(), timeout=20)
+    r = requests.get(url, headers=gh_headers(), timeout=12)
     if r.status_code != 200:
         return None
     import base64
@@ -248,7 +248,7 @@ def api_stats(request: Request):
                 recent = re.findall(r"\| (\d{4}-\d{2}-\d{2}) \| (\w+) \| \[([^\]]+)\]",
                                     log)[-5:][::-1]
             r = requests.get(f"{GH_API}/repos/{gh_repo_full(repo)}/contents/posts",
-                             headers=gh_headers(), timeout=20)
+                             headers=gh_headers(), timeout=12)
             if r.status_code == 200 and isinstance(r.json(), list):
                 posts = len(r.json())
         lcu = env("LEETCODE_USERNAME")
