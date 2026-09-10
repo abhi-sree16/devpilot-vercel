@@ -11,7 +11,6 @@ Free **Vercel Hobby** plan meedha run avtundi. PyGithub vaddu — pure REST + re
 |------|-------------|
 | **Dashboard** | streak, repo solutions, LeetCode profile (rank + Easy/Medium/Hard), recent commits |
 | **LeetCode** | today's daily problem, AI hints, full solution (approach + code + complexity), LinkedIn post, **1-click GitHub commit** (`{date}-{slug}/solution.py` + `README.md` + `LOG.md` row) |
-| **Projects** | idea → AI project plan → repo create + files push + TODO.md; progress updates → PROGRESS.md |
 | **Posts** | LinkedIn drafts → AI generate/edit → save to `posts/{date}-post.md` |
 
 ## Deploy (5 minutes)
