@@ -348,9 +348,17 @@ async function api(path, method, body){
   const opts = {method: method || "GET", headers: {"x-app-password": PW}};
   if (body){ opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
   const r = await fetch(path, opts);
-  const d = await r.json().catch(() => ({ok:false, error:"Server response parse aagaldu"}));
+  const text = await r.text();
+  let d = null;
+  try { d = JSON.parse(text); }
+  catch(e){
+    const snip = (text || "").replace(/\s+/g, " ").slice(0, 90);
+    throw new Error("Server HTTP " + r.status + " — JSON response ravadhu"
+      + (r.status === 504 ? " (server busy — 1 min tarvata malli try chey)" : "")
+      + (snip ? " [" + snip + "]" : ""));
+  }
   if (d && d.auth === false){ showGate(d.error || "Password wrong"); throw new Error(d.error || "Auth fail"); }
-  if (!d || !d.ok) throw new Error((d && d.error) || "API error");
+  if (!d || !d.ok) throw new Error((d && d.error) || ("API error HTTP " + r.status));
   return d;
 }
 
