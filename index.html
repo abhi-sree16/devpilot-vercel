@@ -159,6 +159,21 @@
   .row-btns{margin:4px 0 18px}
   .row-between{display:flex; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap:wrap; gap:8px}
 
+  /* ── Segmented control + search results ── */
+  .seg{display:flex; gap:4px; background:rgba(255,255,255,.04); border:1px solid var(--border);
+    border-radius:13px; padding:4px; width:fit-content; margin-bottom:16px; flex-wrap:wrap}
+  .seg button{padding:8px 15px; border-radius:9px; border:none; background:none;
+    color:var(--muted); font-weight:600; font-size:13px; cursor:pointer; transition:all .15s}
+  .seg button:hover{color:var(--text)}
+  .seg button.active{background:rgba(124,140,255,.16); color:var(--text)}
+  .lc-results{margin-top:14px}
+  .lc-item{display:flex; align-items:center; gap:10px; padding:11px 13px;
+    border:1px solid var(--border); border-radius:11px; margin-top:8px; cursor:pointer;
+    transition:all .15s; font-size:13.5px}
+  .lc-item:hover{border-color:rgba(124,140,255,.45); background:rgba(124,140,255,.07)}
+  .lc-item .num{color:var(--muted); font-variant-numeric:tabular-nums; min-width:46px}
+  .lc-item .ttl{flex:1}
+
   /* ── Code / prose ── */
   .code-wrap{background:rgba(3,5,10,.72); border:1px solid var(--border); border-radius:13px; overflow:auto}
   .code-head{display:flex; justify-content:space-between; align-items:center; gap:8px;
@@ -267,11 +282,52 @@
     <section id="page-leetcode" class="page hidden">
       <div class="page-head">
         <div>
-          <h1>LeetCode Daily</h1>
-          <p class="sub">rodhu oka problem — solve → commit → streak</p>
+          <h1>Practice</h1>
+          <p class="sub">daily · any LeetCode problem · any platform — solve → commit → streak</p>
         </div>
         <button class="btn ghost sm" id="daily-refresh">↻ Refresh</button>
       </div>
+
+      <div class="seg">
+        <button class="active" data-lcmode="daily">📅 Daily</button>
+        <button data-lcmode="search">🔍 Search</button>
+        <button data-lcmode="custom">✏️ Any Platform</button>
+      </div>
+
+      <div class="card hidden" id="lc-search-panel">
+        <h3>🔍 LeetCode Problem Search</h3>
+        <label>Search — 3000+ problems</label>
+        <input id="lc-q" placeholder="e.g. two sum, 146, binary tree, kadane…">
+        <button class="btn ghost" id="btn-lc-search">🔍 Search</button>
+        <div id="lc-results"></div>
+      </div>
+
+      <div class="card hidden" id="lc-custom-panel">
+        <h3>✏️ Any Platform Problem</h3>
+        <p class="sub" style="margin-bottom:4px">HackerRank, CodeChef, Codeforces, GfG… problem paste chey — AI solution + GitHub commit!</p>
+        <label>Platform</label>
+        <select id="cp-platform">
+          <option>HackerRank</option>
+          <option>CodeChef</option>
+          <option>Codeforces</option>
+          <option>GeeksforGeeks</option>
+          <option>Other</option>
+        </select>
+        <label>Problem title</label>
+        <input id="cp-title" placeholder="e.g. Two Sum">
+        <label>Difficulty</label>
+        <select id="cp-diff">
+          <option>Easy</option>
+          <option selected>Medium</option>
+          <option>Hard</option>
+        </select>
+        <label>Problem link (optional)</label>
+        <input id="cp-link" placeholder="https://www.hackerrank.com/challenges/...">
+        <label>Problem statement paste chey</label>
+        <textarea id="cp-desc" rows="6" placeholder="Full problem statement ikkada paste cheyandiro…"></textarea>
+        <button class="btn" id="btn-cp-load">⚡ Load Problem</button>
+      </div>
+
       <div class="card" id="daily-card"></div>
       <div class="row-btns">
         <button class="btn ghost" id="btn-hints" data-busy="⏳ Hints raavatam…">💡 Hints</button>
@@ -341,7 +397,7 @@
 "use strict";
 const el = id => document.getElementById(id);
 let PW = localStorage.getItem("dp_pass") || "";
-const state = {problem:null, solution:null, loaded:{}};
+const state = {problem:null, solution:null, dailyProblem:null, loaded:{}};
 
 /* ── API helper ─────────────────────────────────────────── */
 async function api(path, method, body){
@@ -497,31 +553,117 @@ function bar(label, val, total, color){
 }
 el("dash-refresh").addEventListener("click", () => withBusy(el("dash-refresh"), loadDash));
 
-/* ═══ LEETCODE ═══ */
+/* ═══ LEETCODE / PRACTICE ═══ */
+document.querySelectorAll(".seg button").forEach(b =>
+  b.addEventListener("click", () => setLcMode(b.dataset.lcmode)));
+
+function setLcMode(m){
+  document.querySelectorAll(".seg button").forEach(b =>
+    b.classList.toggle("active", b.dataset.lcmode === m));
+  el("lc-search-panel").classList.toggle("hidden", m !== "search");
+  el("lc-custom-panel").classList.toggle("hidden", m !== "custom");
+  if (m === "daily"){
+    if (state.dailyProblem) renderProblemCard(state.dailyProblem, "daily");
+    else loadDaily();
+  }
+}
+
 async function loadDaily(){
   const card = el("daily-card");
   card.innerHTML = skel(4);
   try {
     const d = await api("/api/daily");
     state.loaded.daily = true;
-    state.problem = d;
-    const diff = (d.difficulty || "").toLowerCase();
-    card.innerHTML =
-      '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">' +
-      '<h3 style="margin:0">' + d.num + ". " + esc(d.title) + "</h3>" +
-      '<span class="badge ' + diff + '">' + esc(d.difficulty) + "</span>" +
-      (d.already_solved ? '<span class="badge solved">✓ Solved</span>' : "") + "</div>" +
-      '<p class="sub" style="margin-top:7px">📅 ' + esc(d.date) + ' · <a href="https://leetcode.com' + d.link + '" target="_blank" rel="noopener">Solve on LeetCode ↗</a></p>' +
-      '<div class="prose sub" style="margin-top:13px; max-height:320px; overflow:auto">' + esc(d.content || "") + "</div>";
+    state.dailyProblem = d;
+    renderProblemCard(d, "daily");
     const last = JSON.parse(localStorage.getItem("dp_last_solution") || "null");
     if (last && last.problem && last.problem.slug === d.slug){
       state.solution = last.solution;
       renderSolution(last.solution);
-      toast("✨ Earlier generated solution vachesindi — leda malli generate chey");
     }
-  } catch(e){ card.innerHTML = '<p class="sub">❌ ' + esc(e.message) + "</p>"; }
+  } catch(e){ el("daily-card").innerHTML = '<p class="sub">❌ ' + esc(e.message) + "</p>"; }
 }
-el("daily-refresh").addEventListener("click", () => withBusy(el("daily-refresh"), loadDaily));
+el("daily-refresh").addEventListener("click", () => withBusy(el("daily-refresh"), async () => {
+  state.dailyProblem = null;
+  await loadDaily();
+}));
+
+function renderProblemCard(d, origin){
+  state.problem = d;
+  state.solution = null;
+  el("btn-commit").disabled = true;
+  el("sol-box").classList.add("hidden");
+  el("hints-box").classList.add("hidden");
+  const card = el("daily-card");
+  const diff = (d.difficulty || "").toLowerCase();
+  const tag = origin === "daily" ? "📅 Daily Challenge"
+            : origin === "search" ? "🔍 LeetCode"
+            : "✏️ " + (d.platform || "Custom");
+  const href = d.link ? (d.link.startsWith("http") ? d.link : "https://leetcode.com" + d.link) : "";
+  card.innerHTML =
+    '<p class="sub" style="margin-bottom:9px">' + tag +
+    (d.already_solved ? ' · <span style="color:var(--easy)">✓ solved</span>' : "") + "</p>" +
+    '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">' +
+    '<h3 style="margin:0">' + (d.num ? d.num + ". " : "") + esc(d.title) + "</h3>" +
+    '<span class="badge ' + diff + '">' + esc(d.difficulty) + "</span></div>" +
+    (href ? '<p class="sub" style="margin-top:7px"><a href="' + esc(href) + '" target="_blank" rel="noopener">Open problem ↗</a></p>' : "") +
+    '<div class="prose sub" style="margin-top:13px; max-height:320px; overflow:auto">' + esc(d.content || "") + "</div>";
+}
+
+/* ── Search mode ── */
+el("btn-lc-search").addEventListener("click", () => withBusy(el("btn-lc-search"), async () => {
+  const q = el("lc-q").value.trim();
+  if (!q) throw new Error("Search keyword type chey");
+  el("lc-results").innerHTML = skel(3, "55%");
+  const d = await api("/api/lc_search?q=" + encodeURIComponent(q));
+  const box = el("lc-results");
+  box.innerHTML = "";
+  if (!d.results.length){
+    box.innerHTML = '<p class="sub">Emi dhorakaledu — vere keyword try chey</p>';
+    return;
+  }
+  d.results.forEach(x => {
+    const item = document.createElement("div");
+    item.className = "lc-item";
+    const diff = (x.difficulty || "").toLowerCase();
+    item.innerHTML = '<span class="num">' + esc(x.num) + '</span>' +
+      '<span class="ttl">' + esc(x.title) + '</span>' +
+      '<span class="badge ' + diff + '">' + esc(x.difficulty) + "</span>";
+    item.addEventListener("click", async () => {
+      if (item.dataset.busying) return;
+      item.dataset.busying = "1";
+      item.style.opacity = ".5";
+      try {
+        const p = await api("/api/lc_problem?slug=" + encodeURIComponent(x.slug));
+        renderProblemCard(p, "search");
+        el("daily-card").scrollIntoView({behavior:"smooth"});
+        toast("✨ " + p.title + " load aindi — hints/solution try chey");
+      } catch(err){ toast("❌ " + err.message, true); }
+      finally { delete item.dataset.busying; item.style.opacity = ""; }
+    });
+    box.appendChild(item);
+  });
+}));
+el("lc-q").addEventListener("keydown", e => { if (e.key === "Enter") el("btn-lc-search").click(); });
+
+/* ── Any-platform custom mode ── */
+el("btn-cp-load").addEventListener("click", () => withBusy(el("btn-cp-load"), async () => {
+  const title = el("cp-title").value.trim();
+  const desc = el("cp-desc").value.trim();
+  if (!title || !desc) throw new Error("Title + problem statement rendu kavali");
+  const platform = el("cp-platform").value;
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "problem";
+  const p = {
+    date: new Date().toISOString().slice(0, 10),
+    num: "", title: title, slug: slug,
+    difficulty: el("cp-diff").value,
+    content: desc, link: el("cp-link").value.trim(),
+    platform: platform, already_solved: false
+  };
+  renderProblemCard(p, "custom");
+  el("daily-card").scrollIntoView({behavior:"smooth"});
+  toast("✨ " + platform + " problem load aindi — hints/solution generate chey!");
+}));
 
 el("btn-hints").addEventListener("click", () => withBusy(el("btn-hints"), async () => {
   const p = state.problem; if (!p) throw new Error("Problem load avvaledu — refresh chey");
