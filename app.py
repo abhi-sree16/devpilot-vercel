@@ -477,12 +477,6 @@ async def api_github(request: Request):
                         "post draft", body["content"])
             return {"ok": True}
 
-        if action == "save_practice":
-            upsert_file(env("GITHUB_REPO"),
-                        f"practice/{date.today().isoformat()}-{body.get('mode', 'session')}.md",
-                        "communication practice", body["content"])
-            return {"ok": True}
-
         if action == "create_main_repo":
             r = requests.post(f"{GH_API}/user/repos", headers=gh_headers(),
                               json={"name": env("GITHUB_REPO"),
