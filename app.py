@@ -105,6 +105,13 @@ def ask_json(prompt, keys, max_tokens=6000):
 
 
 # ── LeetCode (public GraphQL) ─────────────────────────────────────────────
+def _strip_html(raw):
+    raw = re.sub(r"<br\s*/?>|</p>|</pre>|</li>|</ul>|</ol>|</h\d>", "\n", raw or "")
+    raw = re.sub(r"<[^>]+>", " ", raw)
+    import html as _html
+    return _html.unescape(re.sub(r"[ \t]{2,}", " ", raw)).strip()
+
+
 def fetch_daily():
     r = requests.post(
         "https://leetcode.com/graphql",
@@ -213,15 +220,74 @@ def api_daily(request: Request):
         lcu = env("LEETCODE_USERNAME")
         if lcu:
             already = m["titleSlug"] in {s.get("titleSlug") for s in lc_recent_ac(lcu)}
-        raw = m.get("content") or ""
-        raw = re.sub(r"<br\s*/?>|</p>|</pre>|</li>|</ul>|</ol>|</h\d>", "\n", raw)
-        raw = re.sub(r"<[^>]+>", " ", raw)
-        import html as _html
-        raw = _html.unescape(re.sub(r"[ \t]{2,}", " ", raw))
         return {"ok": True, "date": q["date"], "num": m["questionFrontendId"],
                 "title": m["title"], "slug": m["titleSlug"],
-                "difficulty": m["difficulty"], "content": raw.strip(),
+                "difficulty": m["difficulty"], "content": _strip_html(m.get("content")),
                 "link": q["link"], "already_solved": already}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/lc_search")
+def api_lc_search(request: Request, q: str = ""):
+    """LeetCode full library search — daily kakunda ANY problem."""
+    try:
+        check_auth(request)
+    except AuthError as e:
+        return {"ok": False, "error": str(e), "auth": False}
+    try:
+        r = requests.post(
+            "https://leetcode.com/graphql",
+            json={
+                "query": """query problemsetQuestionList($categorySlug:String,$limit:Int,
+                  $skip:Int,$filters:QuestionListFilterInput){
+                  problemsetQuestionList:questionList(categorySlug:$categorySlug,
+                  limit:$limit,skip:$skip,filters:$filters){
+                  questions:data{questionFrontendId title titleSlug difficulty} } }""",
+                "variables": {"categorySlug": "", "skip": 0, "limit": 12,
+                              "filters": {"searchKeywords": q or "a"}}},
+            headers=LC_HEADERS, timeout=15)
+        r.raise_for_status()
+        qs = (((r.json().get("data") or {}).get("problemsetQuestionList") or {})
+              .get("questions")) or []
+        return {"ok": True, "results": [
+            {"num": x.get("questionFrontendId"), "title": x.get("title"),
+             "slug": x.get("titleSlug"), "difficulty": x.get("difficulty")}
+            for x in qs if x.get("titleSlug")]}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/lc_problem")
+def api_lc_problem(request: Request, slug: str = ""):
+    """Full problem content by slug (search nunchi click chesinappudu)."""
+    try:
+        check_auth(request)
+    except AuthError as e:
+        return {"ok": False, "error": str(e), "auth": False}
+    try:
+        if not slug:
+            return {"ok": False, "error": "slug kavali"}
+        r = requests.post(
+            "https://leetcode.com/graphql",
+            json={"query": """query questionDetail($titleSlug:String!){
+              question(titleSlug:$titleSlug){
+              questionFrontendId title titleSlug difficulty content } }""",
+                  "variables": {"titleSlug": slug}},
+            headers=LC_HEADERS, timeout=15)
+        r.raise_for_status()
+        m = (r.json().get("data") or {}).get("question")
+        if not m:
+            return {"ok": False, "error": "Problem dhorakaledu — slug check chey"}
+        already = False
+        lcu = env("LEETCODE_USERNAME")
+        if lcu:
+            already = m["titleSlug"] in {s.get("titleSlug") for s in lc_recent_ac(lcu)}
+        return {"ok": True, "date": date.today().isoformat(),
+                "num": m["questionFrontendId"], "title": m["title"],
+                "slug": m["titleSlug"], "difficulty": m["difficulty"],
+                "content": _strip_html(m.get("content")),
+                "link": f"/problems/{slug}/", "already_solved": already}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -279,22 +345,24 @@ async def api_solve(request: Request):
 
         if kind == "hints":
             p = body["problem"]
+            head = (f"{p['num']}. " if str(p.get("num") or "").strip() else "") + p["title"]
             text = ask(
-                f"LeetCode {p['num']}. {p['title']} ({p['difficulty']})\n"
+                f"{head} ({p['difficulty']})\n"
                 f"{p.get('content', '')[:4000]}\n\n3 progressive hints ivvu — full solution vaddu.")
             return {"ok": True, "result": text}
 
         if kind == "solution":
             p = body["problem"]
-            data = ask_json(f"""Solve this LeetCode problem.
+            head = (f"{p['num']}. " if str(p.get("num") or "").strip() else "") + p["title"]
+            data = ask_json(f"""Solve this coding problem.
 
-{p['num']}. {p['title']} ({p['difficulty']})
+{head} ({p['difficulty']})
 {p.get('content', '')[:4000]}
 
 JSON keys:
 - approach: 2-3 sentences on the core idea, plain English
 - complexity: "O(?) time, O(?) space"
-- code: complete Python 3 class Solution, LeetCode-lo direct ga submit cheyochu
+- code: complete Python 3 solution (LeetCode problem ante "class Solution" format, leda clean function format)
 - linkedin_post: first-person post <120 words, hook + approach + lesson, max 2 emojis, 3-5 hashtags""",
                 ["approach", "complexity", "code", "linkedin_post"])
             return {"ok": True, "result": data}
@@ -325,15 +393,23 @@ async def api_github(request: Request):
                 raise RuntimeError("GITHUB_TOKEN / GITHUB_REPO env vars ledu")
             p, sol = body["problem"], body["solution"]
             repo, base = env("GITHUB_REPO"), f"{p['date']}-{p['slug']}"
+            plat = str(p.get("platform") or "").strip()
+            head = (f"{p['num']}. " if str(p.get("num") or "").strip() else "") + p["title"]
+            disp = (f"[{plat}] " if plat else "") + head
+            link = str(p.get("link") or "")
+            if link and not link.startswith("http"):
+                link = "https://leetcode.com" + link
             upsert_file(repo, f"{base}/solution.py", f"solve: {base}", sol["code"])
             upsert_file(repo, f"{base}/README.md", f"docs: {base}",
-                        f"# {p['num']}. {p['title']}\n\n"
-                        f"**Difficulty:** {p['difficulty']}  \nhttps://leetcode.com{p['link']}\n\n"
-                        f"## Approach\n{sol['approach']}\n\n## Complexity\n{sol['complexity']}\n")
+                        f"# {disp}\n\n"
+                        f"**Difficulty:** {p['difficulty']}  \n"
+                        + (f"**Platform:** {plat}  \n" if plat else "")
+                        + (f"{link}\n" if link else "\n")
+                        + f"\n## Approach\n{sol['approach']}\n\n## Complexity\n{sol['complexity']}\n")
             log = read_file(repo, "LOG.md") or \
                 "# Streak\n\n| Date | Difficulty | Problem |\n|------|------------|---------|\n"
             upsert_file(repo, "LOG.md", f"log: {p['date']}", log +
-                        f"| {p['date']} | {p['difficulty']} | [{p['title']}](/{base}/) |\n")
+                        f"| {p['date']} | {p['difficulty']} | [{disp}](/{base}/) |\n")
             return {"ok": True, "url": f"https://github.com/{gh_repo_full(repo)}"}
 
         if action == "save_post":
