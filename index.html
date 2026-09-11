@@ -473,9 +473,7 @@
         <h4>✅ Strengths</h4><ul class="plan-tasks" id="fb-strengths" style="list-style:disc"></ul>
         <h4>⚠️ Improvements</h4><ul class="plan-tasks" id="fb-improve" style="list-style:disc"></ul>
         <h4>💡 Tips</h4><ul class="plan-tasks" id="fb-tips" style="list-style:disc"></ul>
-        <button class="btn" id="sp-save" data-busy="⏳ Saving…">💾 Save to GitHub</button>
         <button class="btn ghost" id="sp-again">🔄 Practice Again</button>
-        <div class="success-box hidden" id="sp-success"></div>
       </div>
     </section>
 
@@ -868,7 +866,6 @@ el("sp-start").addEventListener("click", () => withBusy(el("sp-start"), async ()
   el("sp-setup").classList.add("hidden");
   el("sp-live").classList.remove("hidden");
   el("sp-feedback").classList.add("hidden");
-  el("sp-success").classList.add("hidden");
   el("sp-mode-badge").textContent = spMode === "gd" ? "Group Discussion" : spMode === "jam" ? "Just a Minute" : "Interview";
   el("sp-chat").innerHTML = "";
   if (spMode === "jam"){
@@ -986,36 +983,6 @@ function endSession(fb){
   fillList(el("fb-tips"), fb.tips || []);
   el("sp-feedback").scrollIntoView({behavior:"smooth"});
   toast("📊 Feedback ready!");
-}
-
-el("sp-save").addEventListener("click", () => withBusy(el("sp-save"), async () => {
-  if (!sp.feedback) throw new Error("Feedback ledu — mundhu session complete chey");
-  const md = buildPracticeMd();
-  await api("/api/github", "POST", {action:"save_practice", mode:spMode, content:md});
-  const today = new Date().toISOString().slice(0,10);
-  const box = el("sp-success");
-  box.classList.remove("hidden");
-  box.textContent = "✅ practice/" + today + "-" + spMode + ".md push aindi repo lo!";
-  toast("💾 Practice session saved to GitHub");
-}));
-
-function buildPracticeMd(){
-  const today = new Date().toISOString().slice(0,10);
-  let md = "# " + (spMode === "gd" ? "Group Discussion" : spMode === "jam" ? "Just a Minute (JAM)" : "Mock Interview") + " — " + today + "\n\n";
-  if (sp.role) md += "**Role:** " + sp.role + "  \n";
-  if (sp.topic) md += "**Topic:** " + sp.topic + "  \n";
-  md += "**Score:** " + (sp.feedback.score != null ? sp.feedback.score + "/10" : "–") + "\n\n";
-  md += "## Transcript\n\n";
-  sp.history.forEach(h => {
-    md += (h.who === "me" ? "**Me:** " : "**" + (h.name || "AI") + ":** ") + h.text + "\n\n";
-  });
-  md += "## Feedback\n\n### Strengths\n";
-  (sp.feedback.strengths || []).forEach(s => md += "- " + s + "\n");
-  md += "\n### Improvements\n";
-  (sp.feedback.improvements || []).forEach(s => md += "- " + s + "\n");
-  md += "\n### Tips\n";
-  (sp.feedback.tips || []).forEach(s => md += "- " + s + "\n");
-  return md;
 }
 
 el("sp-again").addEventListener("click", () => {
