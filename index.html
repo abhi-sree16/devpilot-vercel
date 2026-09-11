@@ -91,11 +91,24 @@
 
   /* ── Layout ── */
   main{max-width:1080px; margin:0 auto; padding:28px 20px 60px}
-  .page{animation:fadeUp .45s cubic-bezier(.16,.8,.3,1) both}
-  @keyframes fadeUp{from{opacity:0; transform:translateY(16px)}}
+  @keyframes slideFwd{from{opacity:0; transform:translateX(48px)}to{opacity:1; transform:none}}
+  @keyframes slideBack{from{opacity:0; transform:translateX(-48px)}to{opacity:1; transform:none}}
+  .page.anim-fwd{animation:slideFwd .42s cubic-bezier(.2,.8,.3,1) both}
+  .page.anim-back{animation:slideBack .42s cubic-bezier(.2,.8,.3,1) both}
   .page-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; flex-wrap:wrap}
   .page-head h1{font-size:25px; letter-spacing:-.3px}
   .page-head .sub{color:var(--muted); font-size:13px; margin-top:5px}
+  .head-l{display:flex; align-items:center; gap:13px}
+  .backbtn{width:40px; height:40px; border-radius:12px; border:1px solid var(--border2);
+    background:rgba(255,255,255,.05); color:var(--text); font-size:18px; cursor:pointer;
+    flex-shrink:0; transition:all .16s}
+  .backbtn:hover{border-color:var(--accent); background:rgba(124,140,255,.13); transform:translateX(-2px)}
+  .backbtn:active{transform:scale(.92)}
+  /* per-page accent colors */
+  #page-dash h1{background:linear-gradient(90deg,#7c8cff,#4dd6ff); -webkit-background-clip:text; background-clip:text; color:transparent}
+  #page-leetcode h1{background:linear-gradient(90deg,#b18cff,#e879f9); -webkit-background-clip:text; background-clip:text; color:transparent}
+  #page-speak h1{background:linear-gradient(90deg,#34d399,#a3e635); -webkit-background-clip:text; background-clip:text; color:transparent}
+  #page-posts h1{background:linear-gradient(90deg,#fbbf24,#fb923c); -webkit-background-clip:text; background-clip:text; color:transparent}
   .card{background:var(--card); border:1px solid var(--border); border-radius:18px;
     padding:22px; margin-bottom:18px; backdrop-filter:blur(14px);
     box-shadow:0 8px 32px rgba(0,0,0,.28)}
@@ -174,6 +187,42 @@
   .lc-item .num{color:var(--muted); font-variant-numeric:tabular-nums; min-width:46px}
   .lc-item .ttl{flex:1}
 
+  /* ── Speak module ── */
+  .mode-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:10px}
+  @media(max-width:760px){.mode-grid{grid-template-columns:1fr}}
+  .mode-card{border:1.5px solid var(--border); border-radius:15px; padding:18px 14px; text-align:center;
+    cursor:pointer; transition:all .18s}
+  .mode-card:hover{border-color:rgba(52,211,153,.45); transform:translateY(-2px)}
+  .mode-card.active{border-color:var(--easy); background:rgba(52,211,153,.09); box-shadow:0 0 20px rgba(52,211,153,.12)}
+  .mode-ico{font-size:27px; margin-bottom:7px}
+  .mode-card b{display:block; font-size:14.5px}
+  .mode-card .sub{font-size:11.5px; display:block; margin-top:4px}
+  .chat{max-height:400px; overflow-y:auto; padding:6px 2px; margin-bottom:15px}
+  .msg{max-width:84%; padding:11px 15px; border-radius:16px; font-size:13.5px; line-height:1.6;
+    margin-bottom:11px; white-space:pre-wrap; word-break:break-word; animation:msgIn .3s ease both}
+  @keyframes msgIn{from{opacity:0; transform:translateY(8px)}}
+  .msg.ai{background:rgba(255,255,255,.05); border:1px solid var(--border); border-bottom-left-radius:5px}
+  .msg.me{background:linear-gradient(92deg,rgba(91,124,250,.30),rgba(62,198,232,.22));
+    border:1px solid rgba(124,140,255,.38); margin-left:auto; border-bottom-right-radius:5px}
+  .msg .who{display:block; font-size:10.5px; color:var(--muted); font-weight:700; margin-bottom:4px; letter-spacing:.4px}
+  .input-row{display:flex; gap:9px; align-items:center}
+  #sp-mic{width:48px; height:48px; flex-shrink:0; border-radius:50%; font-size:20px;
+    border:1.5px solid var(--border2); background:rgba(255,255,255,.05); color:var(--text);
+    cursor:pointer; transition:all .2s}
+  #sp-mic:hover{border-color:var(--accent)}
+  #sp-mic:active{transform:scale(.94)}
+  #sp-mic.rec{background:rgba(248,113,113,.22); border-color:var(--hard); animation:pulse 1.3s infinite}
+  #sp-send{width:48px; height:48px; flex-shrink:0; border-radius:13px; font-size:18px;
+    border:none; background:linear-gradient(92deg,#5b7cfa,#3ec6e8); color:#fff; cursor:pointer; transition:filter .2s}
+  #sp-send:hover{filter:brightness(1.15)}
+  #sp-text{margin:0}
+  .spacer{flex:1}
+  #jam-timer{font-variant-numeric:tabular-nums; font-weight:800; font-size:19px; color:var(--medium)}
+  .score-wrap{text-align:center; margin:16px 0 22px; padding:18px; border:1px solid var(--border);
+    border-radius:15px; background:rgba(255,255,255,.02)}
+  .score-num{font-size:54px; font-weight:800; line-height:1;
+    background:linear-gradient(90deg,var(--easy),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+
   /* ── Code / prose ── */
   .code-wrap{background:rgba(3,5,10,.72); border:1px solid var(--border); border-radius:13px; overflow:auto}
   .code-head{display:flex; justify-content:space-between; align-items:center; gap:8px;
@@ -237,7 +286,8 @@
   <nav class="topnav">
     <span class="brand">✈️ DevPilot</span>
     <button class="tab active" data-page="dash">Dashboard</button>
-    <button class="tab" data-page="leetcode">LeetCode</button>
+    <button class="tab" data-page="leetcode">Practice</button>
+    <button class="tab" data-page="speak">Speak</button>
     <button class="tab" data-page="posts">Posts</button>
     <span class="spacer"></span>
     <button class="lock-btn lock" title="Password marchali antey">🔒 Lock</button>
@@ -281,9 +331,12 @@
     <!-- ─── LeetCode ─── -->
     <section id="page-leetcode" class="page hidden">
       <div class="page-head">
-        <div>
-          <h1>Practice</h1>
-          <p class="sub">daily · any LeetCode problem · any platform — solve → commit → streak</p>
+        <div class="head-l">
+          <button class="backbtn" data-back title="Dashboard ki velli">←</button>
+          <div>
+            <h1>Practice</h1>
+            <p class="sub">daily · any LeetCode problem · any platform — solve → commit → streak</p>
+          </div>
         </div>
         <button class="btn ghost sm" id="daily-refresh">↻ Refresh</button>
       </div>
@@ -355,12 +408,86 @@
       </div>
     </section>
 
+    <!-- ─── Speak ─── -->
+    <section id="page-speak" class="page hidden">
+      <div class="page-head">
+        <div class="head-l">
+          <button class="backbtn" data-back title="Dashboard ki velli">←</button>
+          <div>
+            <h1>Speak</h1>
+            <p class="sub">AI communication trainer — interview · GD · speaking practice</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="sp-setup">
+        <h3>🎤 Mode select chey</h3>
+        <div class="mode-grid">
+          <div class="mode-card active" data-mode="interview">
+            <div class="mode-ico">💼</div><b>Interview</b>
+            <span class="sub">AI interviewer — role-based Q&amp;A</span>
+          </div>
+          <div class="mode-card" data-mode="gd">
+            <div class="mode-ico">🗣️</div><b>GD</b>
+            <span class="sub">Group discussion — AI tho debate</span>
+          </div>
+          <div class="mode-card" data-mode="jam">
+            <div class="mode-ico">⏱️</div><b>JAM</b>
+            <span class="sub">1 minute topic speaking</span>
+          </div>
+        </div>
+        <div id="sp-role-wrap">
+          <label>Role / Position</label>
+          <input id="sp-role" placeholder="e.g. Python Backend Intern (empty = software engineer)">
+        </div>
+        <div id="sp-topic-wrap" class="hidden">
+          <label id="sp-topic-label-setup">Topic (empty = AI choose chestundi)</label>
+          <input id="sp-topic" placeholder="e.g. Is AI a threat to jobs?">
+        </div>
+        <button class="btn" id="sp-start" data-busy="⏳ Session start avtundi…">🚀 Start Session</button>
+        <p class="sub" style="margin-top:13px">💡 🎤 mic button tho <b>matladochu</b> (Chrome/Edge best) leda type cheyochu — AI questions <b>voice lo</b> kuda vinipistayi!</p>
+      </div>
+
+      <div class="card hidden" id="sp-live">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px">
+          <span class="badge medium" id="sp-mode-badge">Interview</span>
+          <span class="sub" id="sp-topic-label" style="flex:1"></span>
+          <span id="jam-timer" class="hidden">60s</span>
+          <button class="btn ghost sm" id="sp-voice">🔊 Voice On</button>
+        </div>
+        <div class="chat" id="sp-chat"></div>
+        <div class="input-row">
+          <button id="sp-mic" title="Speak chey (mic)">🎤</button>
+          <input id="sp-text" placeholder="Type your reply… leda mic click chey">
+          <button id="sp-send" title="Send">➤</button>
+        </div>
+        <button class="btn" id="sp-end" data-busy="⏳ Feedback raavatam…">✅ End &amp; Get Feedback</button>
+      </div>
+
+      <div class="card hidden" id="sp-feedback">
+        <h3>📊 Feedback Report</h3>
+        <div class="score-wrap">
+          <div class="score-num" id="fb-score">–</div>
+          <div class="sub">Communication Score / 10</div>
+        </div>
+        <h4>✅ Strengths</h4><ul class="plan-tasks" id="fb-strengths" style="list-style:disc"></ul>
+        <h4>⚠️ Improvements</h4><ul class="plan-tasks" id="fb-improve" style="list-style:disc"></ul>
+        <h4>💡 Tips</h4><ul class="plan-tasks" id="fb-tips" style="list-style:disc"></ul>
+        <button class="btn" id="sp-save" data-busy="⏳ Saving…">💾 Save to GitHub</button>
+        <button class="btn ghost" id="sp-again">🔄 Practice Again</button>
+        <div class="success-box hidden" id="sp-success"></div>
+      </div>
+    </section>
+
     <!-- ─── Posts ─── -->
     <section id="page-posts" class="page hidden">
       <div class="page-head">
-        <div>
-          <h1>LinkedIn Posts</h1>
-          <p class="sub">draft → GitHub lo save → copy chesi LinkedIn lo post</p>
+        <div class="head-l">
+          <button class="backbtn" data-back title="Dashboard ki velli">←</button>
+          <div>
+            <h1>LinkedIn Posts</h1>
+            <p class="sub">draft → GitHub lo save → copy chesi LinkedIn lo post</p>
+          </div>
         </div>
         <button class="btn ghost sm" id="btn-load-solution">↺ Load today's post</button>
       </div>
@@ -384,7 +511,8 @@
   <!-- mobile bottom nav -->
   <nav class="bottomnav">
     <button class="tab active" data-page="dash"><span class="ico">📊</span><span>Home</span></button>
-    <button class="tab" data-page="leetcode"><span class="ico">🧩</span><span>LeetCode</span></button>
+    <button class="tab" data-page="leetcode"><span class="ico">🧩</span><span>Practice</span></button>
+    <button class="tab" data-page="speak"><span class="ico">🎤</span><span>Speak</span></button>
     <button class="tab" data-page="posts"><span class="ico">✍️</span><span>Posts</span></button>
   </nav>
 
@@ -397,7 +525,7 @@
 "use strict";
 const el = id => document.getElementById(id);
 let PW = localStorage.getItem("dp_pass") || "";
-const state = {problem:null, solution:null, dailyProblem:null, loaded:{}};
+const state = {problem:null, solution:null, dailyProblem:null, currentPage:"dash", loaded:{}};
 
 /* ── API helper ─────────────────────────────────────────── */
 async function api(path, method, body){
@@ -483,13 +611,24 @@ document.querySelectorAll(".lock-btn").forEach(b => b.addEventListener("click", 
 }));
 
 /* ── Navigation ─────────────────────────────────────────── */
+const PAGE_ORDER = ["dash", "leetcode", "speak", "posts"];
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => showPage(tab.dataset.page));
 });
+document.querySelectorAll("[data-back]").forEach(b =>
+  b.addEventListener("click", () => showPage("dash")));
+
 function showPage(name){
+  const prev = state.currentPage || "dash";
+  const dir = PAGE_ORDER.indexOf(name) >= PAGE_ORDER.indexOf(prev) ? "fwd" : "back";
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.page === name));
   document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
-  el("page-" + name).classList.remove("hidden");
+  const sec = el("page-" + name);
+  sec.classList.remove("anim-fwd", "anim-back");
+  void sec.offsetWidth;  /* animation restart */
+  sec.classList.add(dir === "back" && name !== prev ? "anim-back" : "anim-fwd");
+  sec.classList.remove("hidden");
+  state.currentPage = name;
   window.scrollTo({top:0, behavior:"smooth"});
   if (name === "dash" && !state.loaded.dash) loadDash();
   if (name === "leetcode" && !state.loaded.daily) loadDaily();
@@ -700,6 +839,193 @@ el("btn-commit").addEventListener("click", () => withBusy(el("btn-commit"), asyn
   state.loaded.dash = false;
   if (!el("page-dash").classList.contains("hidden")) loadDash();
 }));
+
+/* ═══ SPEAK — AI Communication Trainer ═══ */
+let spMode = "interview";
+const sp = {history:[], topic:"", role:"", voiceOn:true, rec:null, jamLeft:60, jamTimer:null, feedback:null};
+
+function fillList(ul, items){
+  ul.innerHTML = "";
+  items.forEach(t => { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+}
+
+document.querySelectorAll(".mode-card").forEach(c => c.addEventListener("click", () => {
+  document.querySelectorAll(".mode-card").forEach(x => x.classList.remove("active"));
+  c.classList.add("active");
+  spMode = c.dataset.mode;
+  el("sp-role-wrap").classList.toggle("hidden", spMode !== "interview");
+  el("sp-topic-wrap").classList.toggle("hidden", spMode === "interview");
+  el("sp-topic-label-setup").textContent = spMode === "gd"
+    ? "GD topic (empty = AI choose chestundi)" : "JAM topic (empty = AI choose chestundi)";
+}));
+
+el("sp-start").addEventListener("click", () => withBusy(el("sp-start"), async () => {
+  sp.role = el("sp-role").value.trim();
+  sp.topic = el("sp-topic").value.trim();
+  sp.history = [];
+  sp.feedback = null;
+  const d = await api("/api/solve", "POST", {kind:"speak", phase:"start", mode:spMode, role:sp.role, topic:sp.topic});
+  el("sp-setup").classList.add("hidden");
+  el("sp-live").classList.remove("hidden");
+  el("sp-feedback").classList.add("hidden");
+  el("sp-success").classList.add("hidden");
+  el("sp-mode-badge").textContent = spMode === "gd" ? "Group Discussion" : spMode === "jam" ? "Just a Minute" : "Interview";
+  el("sp-chat").innerHTML = "";
+  if (spMode === "jam"){
+    sp.topic = d.result.topic || sp.topic;
+    el("sp-topic-label").textContent = "Topic: " + sp.topic;
+    startJam();
+  } else {
+    el("sp-topic-label").textContent = sp.role ? ("Role: " + sp.role) : (sp.topic ? "Topic: " + sp.topic : "");
+  }
+  addMsg("ai", d.result.reply || "", spMode === "gd" ? "Moderator" : "Interviewer");
+  (d.result.replies || []).forEach(r => addMsg("ai", r.text, r.name));
+}));
+
+function addMsg(who, text, name){
+  sp.history.push({who:who, text:text, name:name || ""});
+  const div = document.createElement("div");
+  div.className = "msg " + (who === "me" ? "me" : "ai");
+  if (who === "ai" && name) div.innerHTML = '<span class="who">' + esc(name) + "</span>";
+  div.innerHTML += esc(text);
+  el("sp-chat").appendChild(div);
+  el("sp-chat").scrollTop = el("sp-chat").scrollHeight;
+  if (who === "ai" && sp.voiceOn) speakText(text);
+}
+
+function speakText(text){
+  try {
+    if (!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-IN"; u.rate = 1;
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+el("sp-voice").addEventListener("click", () => {
+  sp.voiceOn = !sp.voiceOn;
+  el("sp-voice").textContent = sp.voiceOn ? "🔊 Voice On" : "🔇 Voice Off";
+  if (!sp.voiceOn && "speechSynthesis" in window) speechSynthesis.cancel();
+});
+
+/* JAM 60s countdown */
+function startJam(){
+  sp.jamLeft = 60;
+  const t = el("jam-timer");
+  t.classList.remove("hidden");
+  t.textContent = "60s";
+  clearInterval(sp.jamTimer);
+  sp.jamTimer = setInterval(() => {
+    sp.jamLeft--;
+    t.textContent = Math.max(0, sp.jamLeft) + "s";
+    if (sp.jamLeft <= 0){
+      clearInterval(sp.jamTimer);
+      t.textContent = "⏰ Time!";
+      toast("⏰ 1 minute aindi — answer send chey!");
+    }
+  }, 1000);
+}
+
+/* mic — Web Speech API */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+el("sp-mic").addEventListener("click", () => {
+  if (!SR){ toast("Ee browser lo mic support ledu — Chrome/Edge lo try chey, leda type chey", true); return; }
+  if (sp.rec){ try { sp.rec.stop(); } catch(e){} return; }
+  const rec = new SR();
+  sp.rec = rec;
+  rec.lang = "en-IN"; rec.interimResults = false; rec.maxAlternatives = 1;
+  el("sp-mic").classList.add("rec");
+  rec.onresult = e => {
+    el("sp-text").value = (el("sp-text").value + " " + e.results[0][0].transcript).trim();
+  };
+  rec.onend = () => { el("sp-mic").classList.remove("rec"); sp.rec = null; };
+  rec.onerror = e => {
+    toast("Mic: " + e.error + " — browser mic permission check chey", true);
+    el("sp-mic").classList.remove("rec"); sp.rec = null;
+  };
+  rec.start();
+  toast("🎤 Listening… matladam start chey");
+});
+
+function sendReply(){
+  const t = el("sp-text").value.trim();
+  if (!t) return;
+  el("sp-text").value = "";
+  addMsg("me", t, "You");
+  spSend(t);
+}
+el("sp-send").addEventListener("click", sendReply);
+el("sp-text").addEventListener("keydown", e => { if (e.key === "Enter") sendReply(); });
+
+async function spSend(t){
+  try {
+    const d = await api("/api/solve", "POST", {kind:"speak", phase:"reply", mode:spMode,
+      role:sp.role, topic:sp.topic, history:sp.history.slice(0, -1), user_reply:t});
+    if (d.done){ endSession(d.result); return; }
+    (d.result.replies || []).forEach(r => addMsg("ai", r.text, r.name));
+    if (!d.result.replies) addMsg("ai", d.result.reply || "", spMode === "gd" ? "Participant" : "Interviewer");
+  } catch(e){ toast("❌ " + e.message, true); }
+}
+
+el("sp-end").addEventListener("click", () => withBusy(el("sp-end"), async () => {
+  if (!sp.history.length) throw new Error("Session empty — mundhu konchem matladu!");
+  const d = await api("/api/solve", "POST", {kind:"speak", phase:"feedback", mode:spMode, history:sp.history});
+  endSession(d.result);
+}));
+
+function endSession(fb){
+  sp.feedback = fb;
+  clearInterval(sp.jamTimer);
+  el("jam-timer").classList.add("hidden");
+  el("sp-live").classList.add("hidden");
+  el("sp-feedback").classList.remove("hidden");
+  el("fb-score").textContent = (fb.score != null ? fb.score : "–");
+  fillList(el("fb-strengths"), fb.strengths || []);
+  fillList(el("fb-improve"), fb.improvements || []);
+  fillList(el("fb-tips"), fb.tips || []);
+  el("sp-feedback").scrollIntoView({behavior:"smooth"});
+  toast("📊 Feedback ready!");
+}
+
+el("sp-save").addEventListener("click", () => withBusy(el("sp-save"), async () => {
+  if (!sp.feedback) throw new Error("Feedback ledu — mundhu session complete chey");
+  const md = buildPracticeMd();
+  await api("/api/github", "POST", {action:"save_practice", mode:spMode, content:md});
+  const today = new Date().toISOString().slice(0,10);
+  const box = el("sp-success");
+  box.classList.remove("hidden");
+  box.textContent = "✅ practice/" + today + "-" + spMode + ".md push aindi repo lo!";
+  toast("💾 Practice session saved to GitHub");
+}));
+
+function buildPracticeMd(){
+  const today = new Date().toISOString().slice(0,10);
+  let md = "# " + (spMode === "gd" ? "Group Discussion" : spMode === "jam" ? "Just a Minute (JAM)" : "Mock Interview") + " — " + today + "\n\n";
+  if (sp.role) md += "**Role:** " + sp.role + "  \n";
+  if (sp.topic) md += "**Topic:** " + sp.topic + "  \n";
+  md += "**Score:** " + (sp.feedback.score != null ? sp.feedback.score + "/10" : "–") + "\n\n";
+  md += "## Transcript\n\n";
+  sp.history.forEach(h => {
+    md += (h.who === "me" ? "**Me:** " : "**" + (h.name || "AI") + ":** ") + h.text + "\n\n";
+  });
+  md += "## Feedback\n\n### Strengths\n";
+  (sp.feedback.strengths || []).forEach(s => md += "- " + s + "\n");
+  md += "\n### Improvements\n";
+  (sp.feedback.improvements || []).forEach(s => md += "- " + s + "\n");
+  md += "\n### Tips\n";
+  (sp.feedback.tips || []).forEach(s => md += "- " + s + "\n");
+  return md;
+}
+
+el("sp-again").addEventListener("click", () => {
+  sp.history = []; sp.feedback = null;
+  clearInterval(sp.jamTimer);
+  el("jam-timer").classList.add("hidden");
+  el("sp-live").classList.add("hidden");
+  el("sp-feedback").classList.add("hidden");
+  el("sp-setup").classList.remove("hidden");
+});
 
 /* ═══ POSTS ═══ */
 function initPosts(){
