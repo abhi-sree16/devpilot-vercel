@@ -373,6 +373,66 @@ First person, <120 words, hook line first, one practical lesson, max 2 emojis,
 3-5 hashtags tho end chey. "I am thrilled to share" lanti clichés vaddu.""")
             return {"ok": True, "result": text}
 
+        if kind == "speak":
+            mode, phase = body.get("mode", "interview"), body.get("phase", "")
+            hist = body.get("history") or []
+            htxt = "\n".join(
+                (h.get("name") or ("You" if h.get("who") == "me" else "AI")) + ": " + h.get("text", "")
+                for h in hist[-16:])
+
+            if phase == "start":
+                if mode == "interview":
+                    data = ask_json(
+                        f'You are a friendly professional interviewer for a "{body.get("role") or "software engineer"}" position. Mock interview practice.\n'
+                        'Start: warm 1-line greeting + FIRST question (opener like "tell me about yourself" or a role-based one). ONE question only, 2-3 sentences total.\n'
+                        'English lo matladu. JSON keys: reply (string)', ["reply"])
+                    return {"ok": True, "result": data}
+                if mode == "gd":
+                    topic = body.get("topic") or "Is AI a bigger threat or an opportunity for jobs?"
+                    data = ask_json(
+                        f'Group Discussion practice. Topic: "{topic}".\n'
+                        'You play 2 participants: Priya (supports the topic) and Arjun (skeptical/critical view).\n'
+                        'Start the GD: Priya opens with a strong point (2-3 sentences).\n'
+                        'English, natural GD tone. JSON keys: replies (array of {name, text})', ["replies"])
+                    return {"ok": True, "result": data}
+                if mode == "jam":
+                    topic = body.get("topic") or ""
+                    if not topic:
+                        topic = ask("Give one interesting Just-A-Minute (JAM) speaking topic — tech, careers, or daily life. Topic line matrame, English.", max_tokens=300).strip().strip('"')
+                    return {"ok": True, "result": {"topic": topic,
+                            "reply": "Your JAM topic: " + topic + "\n\nSpeak for 60 seconds — structure: opening line, 2-3 points, short conclusion. Mic press chesi matladam start chey!"}}
+                return {"ok": False, "error": f"unknown mode: {mode}"}
+
+            if phase == "reply":
+                user_reply = body.get("user_reply", "")
+                if mode == "interview":
+                    data = ask_json(
+                        f'Mock interview for "{body.get("role") or "software engineer"}" position. Transcript:\n{htxt}\n\nCandidate: "{user_reply}"\n'
+                        'Respond as the interviewer: brief acknowledgment + the NEXT question (dig into projects/skills from their answer; mix technical + behavioral). ONE question, 2-3 sentences.\n'
+                        'JSON keys: reply', ["reply"])
+                elif mode == "gd":
+                    data = ask_json(
+                        f'GD topic: "{body.get("topic") or ""}". Transcript:\n{htxt}\n\nCandidate: "{user_reply}"\n'
+                        'Participants Priya (pro) and Arjun (skeptic) respond to the candidate point. Pick ONE participant (or both, briefly). Natural GD tone — agree/disagree with substance, 2-3 sentences each.\n'
+                        'JSON keys: replies (array of {name, text})', ["replies"])
+                else:  # jam → user speech complete, direct feedback
+                    data = ask_json(
+                        f'JAM (1-minute speech) on "{body.get("topic")}". Transcript:\n{htxt}\n\nSpeech:\n"{user_reply}"\n'
+                        'Evaluate the speech. JSON keys: score (1-10), strengths (3 bullets), improvements (3), tips (3) — English, honest.',
+                        ["score", "strengths", "improvements", "tips"])
+                    return {"ok": True, "result": data, "done": True}
+                return {"ok": True, "result": data}
+
+            if phase == "feedback":
+                data = ask_json(
+                    f"Mock {mode} session transcript:\n{htxt}\n\n"
+                    "Give honest communication feedback. JSON keys:\n"
+                    "- score: 1-10 number\n- strengths: 3 bullets (English)\n- improvements: 3 bullets\n- tips: 3 practical tips",
+                    ["score", "strengths", "improvements", "tips"])
+                return {"ok": True, "result": data}
+
+            return {"ok": False, "error": f"unknown phase: {phase}"}
+
         return {"ok": False, "error": f"unknown kind: {kind}"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -415,6 +475,12 @@ async def api_github(request: Request):
         if action == "save_post":
             upsert_file(env("GITHUB_REPO"), f"posts/{date.today().isoformat()}-post.md",
                         "post draft", body["content"])
+            return {"ok": True}
+
+        if action == "save_practice":
+            upsert_file(env("GITHUB_REPO"),
+                        f"practice/{date.today().isoformat()}-{body.get('mode', 'session')}.md",
+                        "communication practice", body["content"])
             return {"ok": True}
 
         if action == "create_main_repo":
