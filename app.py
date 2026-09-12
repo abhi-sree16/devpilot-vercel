@@ -18,9 +18,12 @@ app = FastAPI(title="DevPilot")
 GH_API = "https://api.github.com"
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
 # Model fallback chain — high-demand (503) unte automatic ga next model
-# (3.6-flash first: flash-latest sep-2026 lo stalls ayyindi — adaptive order kuda chuddu)
+# (outage windows lo konni models stall avtayi — so 6 model chain + adaptive order)
 GEMINI_MODELS = [
+    "gemini-3.8-flash",
     "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.5-flash",
     "gemini-flash-latest",
     "gemini-flash-lite-latest",
 ]
