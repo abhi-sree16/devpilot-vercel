@@ -94,13 +94,39 @@ def ask(prompt, max_tokens=6000):
     raise RuntimeError(f"LLM API fail — {last_err}")
 
 
+def _repair_json(text):
+    """Common LLM JSON mistakes repair — unquoted keys, trailing commas, fences."""
+    text = re.sub(r"^```[a-zA-Z]*\s*|\s*```$", "", text.strip())
+    # unquoted keys → quoted (fallback path matrame — direct parse fail aina tarvata)
+    text = re.sub(r'([{,]\s*)([A-Za-z_][A-Za-z0-9_]+)(\s*):', r'\1"\2"\3:', text)
+    # trailing commas
+    text = re.sub(r",\s*([}\]])", r"\1", text)
+    return text
+
+
 def ask_json(prompt, keys, max_tokens=6000):
     import json as _json
-    raw = ask(prompt, max_tokens=max_tokens)
-    try:
-        data = _json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
-    except (ValueError, _json.JSONDecodeError) as e:
-        raise RuntimeError(f"LLM valid JSON ivvaledu ({e}) — malli try chey")
+    import time as _time
+    strict = ("\n\nSTRICT JSON only — double quotes on ALL keys and string values, "
+              "no markdown fences, no comments, no trailing commas.")
+    t0 = _time.time()
+    data, last = None, None
+    for _ in range(2):
+        raw = ask(prompt + strict, max_tokens=max_tokens)
+        try:
+            data = _json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
+            break
+        except (ValueError, _json.JSONDecodeError) as e:
+            last = e
+            try:  # repair path — unquoted keys etc.
+                data = _json.loads(_repair_json(raw[raw.index("{"): raw.rindex("}") + 1]))
+                break
+            except Exception:
+                pass
+        if _time.time() - t0 > 25:
+            break  # Vercel 60s limit — retry ki time ledu, user malli click cheyali
+    if data is None:
+        raise RuntimeError(f"LLM valid JSON ivvaledu ({last}) — malli try chey")
     miss = [k for k in keys if k not in data]
     if miss:
         raise RuntimeError(f"LLM JSON lo keys missing: {', '.join(miss)} — malli try chey")
