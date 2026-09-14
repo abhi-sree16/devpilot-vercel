@@ -233,7 +233,10 @@ def _b64(text):
 @app.get("/")
 def home():
     with open("index.html", encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+        # no-cache — browser yeppudu fresh UI teesukuntundi (old JS + new backend bugs avoid)
+        return HTMLResponse(f.read(), headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"})
 
 
 @app.get("/api/daily")
@@ -330,12 +333,14 @@ def api_stats(request: Request):
     try:
         solved = streak = posts = 0
         recent, lc = [], None
+        all_dates = []
         repo, token = env("GITHUB_REPO"), env("GITHUB_TOKEN")
         if token and repo:
             log = read_file(repo, "LOG.md")
             if log:
                 dates = set(re.findall(r"\| (\d{4}-\d{2}-\d{2}) \|", log))
                 solved = len(dates)
+                all_dates = sorted(dates)
                 d = date.today()
                 while d.isoformat() in dates:
                     streak += 1
@@ -356,7 +361,7 @@ def api_stats(request: Request):
                                 for d in mu["submitStats"]["acSubmissionNum"]}}
         return {"ok": True, "solved": solved, "streak": streak, "posts": posts,
                 "recent": recent, "leetcode": lc, "repo": f"{gh_owner()}/{repo}",
-                "today": date.today().isoformat()}
+                "dates": all_dates, "today": date.today().isoformat()}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
