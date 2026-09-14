@@ -223,6 +223,38 @@
   .score-num{font-size:54px; font-weight:800; line-height:1;
     background:linear-gradient(90deg,var(--easy),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
 
+  /* ── Dashboard v2: hero, donut, heatmap, confetti, stagger ── */
+  .hero{display:flex; align-items:center; gap:20px; padding:26px; margin-bottom:18px;
+    background:linear-gradient(120deg, rgba(124,140,255,.16), rgba(77,214,255,.07) 55%, rgba(255,255,255,.02));
+    border:1px solid rgba(124,140,255,.28)}
+  .hero h2{font-size:22px; letter-spacing:-.2px}
+  .hero-badge{font-size:46px; filter:drop-shadow(0 0 16px rgba(124,140,255,.55)); animation:pulse 2.4s infinite}
+  .xp-track{height:10px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:13px}
+  .xp-fill{height:100%; width:0; border-radius:99px;
+    background:linear-gradient(90deg,#5b7cfa,#3ec6e8); transition:width 1.1s cubic-bezier(.2,.8,.3,1)}
+  .stat-icon.s-streak{background:linear-gradient(135deg, rgba(251,146,60,.25), rgba(251,191,36,.12)); border-color:rgba(251,146,60,.35)}
+  .stat-icon.s-solved{background:linear-gradient(135deg, rgba(124,140,255,.25), rgba(96,165,250,.12)); border-color:rgba(124,140,255,.35)}
+  .stat-icon.s-posts{background:linear-gradient(135deg, rgba(192,132,252,.25), rgba(232,121,249,.12)); border-color:rgba(192,132,252,.35)}
+  .stat-icon.s-total{background:linear-gradient(135deg, rgba(52,211,153,.25), rgba(163,230,53,.12)); border-color:rgba(52,211,153,.35)}
+  .donut-wrap{display:flex; align-items:center; gap:24px; flex-wrap:wrap; justify-content:center; padding:8px 0}
+  .donut{width:150px; height:150px; border-radius:50%; display:grid; place-items:center; flex-shrink:0;
+    box-shadow:0 0 30px rgba(124,140,255,.15)}
+  .donut-hole{width:112px; height:112px; border-radius:50%; background:var(--bg2); display:grid; place-items:center; text-align:center}
+  .donut-hole b{font-size:27px}
+  .legend-row{display:flex; align-items:center; gap:10px; font-size:13.5px; margin:8px 0}
+  .dot{width:12px; height:12px; border-radius:4px; flex-shrink:0}
+  .heatmap{display:flex; gap:4px; overflow-x:auto; padding:6px 2px}
+  .hm-col{display:flex; flex-direction:column; gap:4px}
+  .hm-cell{width:14px; height:14px; border-radius:4px; background:rgba(255,255,255,.05)}
+  .hm-cell.on{background:linear-gradient(135deg,#34d399,#10b981); box-shadow:0 0 9px rgba(52,211,153,.45)}
+  @keyframes fadeUpC{from{opacity:0; transform:translateY(16px)}to{opacity:1; transform:none}}
+  .hero, .stat, .grid-2 .card{animation:fadeUpC .55s cubic-bezier(.2,.8,.3,1) both}
+  .stat:nth-child(2){animation-delay:.08s}
+  .stat:nth-child(3){animation-delay:.16s}
+  .stat:nth-child(4){animation-delay:.24s}
+  .grid-2 .card:nth-child(1){animation-delay:.12s}
+  @keyframes confFall{to{transform:translateY(105vh) rotate(720deg); opacity:.75}}
+
   /* ── Code / prose ── */
   .code-wrap{background:rgba(3,5,10,.72); border:1px solid var(--border); border-radius:13px; overflow:auto}
   .code-head{display:flex; justify-content:space-between; align-items:center; gap:8px;
@@ -309,12 +341,41 @@
         </div>
         <button class="btn ghost sm" id="dash-refresh">↻ Refresh</button>
       </div>
-      <div class="stat-grid">
-        <div class="stat"><div class="stat-icon" id="ico-streak">🔥</div><div><div class="stat-num" id="stat-streak">–</div><div class="stat-label">Day Streak</div></div></div>
-        <div class="stat"><div class="stat-icon">📦</div><div><div class="stat-num" id="stat-solved">–</div><div class="stat-label">Repo Solutions</div></div></div>
-        <div class="stat"><div class="stat-icon">✍️</div><div><div class="stat-num" id="stat-posts">–</div><div class="stat-label">LinkedIn Drafts</div></div></div>
-        <div class="stat"><div class="stat-icon">🧠</div><div><div class="stat-num" id="stat-total">–</div><div class="stat-label">LeetCode Solved</div></div></div>
+
+      <div class="card hero">
+        <div style="flex:1; min-width:200px">
+          <h2 id="hero-greet">✈️ DevPilot</h2>
+          <p class="sub" id="hero-line" style="margin-top:5px">syncing…</p>
+          <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+          <p class="sub" id="xp-text" style="margin-top:7px"></p>
+        </div>
+        <div class="hero-badge" id="hero-badge">🔥</div>
       </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-icon s-streak" id="ico-streak">🔥</div><div><div class="stat-num" id="stat-streak">–</div><div class="stat-label">Day Streak</div></div></div>
+        <div class="stat"><div class="stat-icon s-solved">📦</div><div><div class="stat-num" id="stat-solved">–</div><div class="stat-label">Repo Solutions</div></div></div>
+        <div class="stat"><div class="stat-icon s-posts">✍️</div><div><div class="stat-num" id="stat-posts">–</div><div class="stat-label">LinkedIn Drafts</div></div></div>
+        <div class="stat"><div class="stat-icon s-total">🧠</div><div><div class="stat-num" id="stat-total">–</div><div class="stat-label">LeetCode Solved</div></div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Difficulty Split</h3>
+          <div class="donut-wrap">
+            <div class="donut" id="donut">
+              <div class="donut-hole"><div><b id="donut-total">–</b><div class="sub">solved</div></div></div>
+            </div>
+            <div id="donut-legend"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Activity <span class="sub">(last 12 weeks)</span></h3>
+          <div class="heatmap" id="heatmap"></div>
+          <p class="sub" id="heat-sub" style="margin-top:10px"></p>
+        </div>
+      </div>
+
       <div class="grid-2">
         <div class="card">
           <h3>LeetCode Profile</h3>
@@ -647,6 +708,65 @@ document.addEventListener("click", async e => {
 });
 
 /* ═══ DASHBOARD ═══ */
+function greet(){
+  const h = new Date().getHours();
+  return h < 5 ? "Late night grind 🌙" : h < 12 ? "Good morning ☀️"
+       : h < 17 ? "Good afternoon 🌤️" : h < 21 ? "Good evening 🌆" : "Night session 🌙";
+}
+function levelInfo(n){
+  const tiers = [[0,"Novice","🌱"],[10,"Coder","💻"],[25,"Solver","🧩"],[50,"Skilled","⚡"],
+                 [100,"Expert","🎯"],[150,"Master","🏆"],[200,"Legend","👑"]];
+  let i = 0;
+  for (let j = 0; j < tiers.length; j++) if (n >= tiers[j][0]) i = j;
+  const cur = tiers[i], next = tiers[i+1];
+  const pct = next ? Math.min(100, Math.round(100 * (n - cur[0]) / (next[0] - cur[0]))) : 100;
+  return {name:cur[1], icon:cur[2], pct:pct,
+          next:next ? next[1] : null, need:next ? (next[0] - n) : 0};
+}
+function confetti(){
+  const c = document.createElement("div");
+  c.style.cssText = "position:fixed;inset:0;z-index:300;pointer-events:none;overflow:hidden";
+  document.body.appendChild(c);
+  const colors = ["#7c8cff","#4dd6ff","#34d399","#fbbf24","#f472b6","#a78bfa"];
+  for (let i = 0; i < 50; i++){
+    const p = document.createElement("div");
+    p.style.cssText = "position:absolute;top:-14px;left:" + (Math.random()*100) +
+      "%;width:" + (6 + Math.random()*5) + "px;height:" + (6 + Math.random()*5) +
+      "px;background:" + colors[i % colors.length] +
+      ";border-radius:" + (Math.random() > .5 ? "50%" : "2px") +
+      ";animation:confFall " + (1.6 + Math.random()*1.5) + "s linear " + (Math.random()*.8) + "s forwards";
+    c.appendChild(p);
+  }
+  setTimeout(() => c.remove(), 4000);
+}
+function renderHeatmap(dates){
+  const set = new Set(dates || []);
+  const hm = el("heatmap");
+  hm.innerHTML = "";
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - 83);
+  let on = 0;
+  for (let w = 0; w < 12; w++){
+    const col = document.createElement("div");
+    col.className = "hm-col";
+    for (let d = 0; d < 7; d++){
+      const day = new Date(start);
+      day.setDate(start.getDate() + w*7 + d);
+      const cell = document.createElement("div");
+      if (day <= today){
+        const iso = day.toISOString().slice(0, 10);
+        cell.className = "hm-cell" + (set.has(iso) ? " on" : "");
+        cell.title = iso + (set.has(iso) ? " — solved ✓" : "");
+        if (set.has(iso)) on++;
+      } else cell.className = "hm-cell";
+      col.appendChild(cell);
+    }
+    hm.appendChild(col);
+  }
+  el("heat-sub").textContent = on ? ("Last 12 weeks lo " + on + " solve days 🟢 — daily commit tho idi fill avtundi!") : "Inka empty — daily commit cheyandi, idi green ga fill avtundi! 🌱";
+}
+
 async function loadDash(){
   el("dash-date").textContent = "syncing…";
   el("lc-profile").innerHTML = skel(4);
@@ -659,19 +779,41 @@ async function loadDash(){
     countUp(el("stat-posts"), d.posts);
     const lc = d.leetcode || {};
     const st = lc.stats || {};
-    countUp(el("stat-total"), st.All != null ? st.All : 0);
+    const total = st.All || 0;
+    countUp(el("stat-total"), total);
     el("ico-streak").classList.toggle("pulse", (d.streak || 0) > 0);
+    /* hero */
+    const lv = levelInfo(total);
+    el("hero-greet").textContent = greet() + ", Sree!";
+    el("hero-line").textContent = "Level: " + lv.icon + " " + lv.name +
+      (lv.next ? " · " + lv.need + " problems to " + lv.next : " — max level!");
+    el("xp-fill").style.width = lv.pct + "%";
+    el("xp-text").textContent = lv.next ? (lv.pct + "% progress to " + lv.next) : "Legendary! 👑";
+    el("hero-badge").textContent = lv.icon;
+    /* donut */
+    const e = st.Easy || 0, m = st.Medium || 0, h = st.Hard || 0;
+    const pe = total ? (100 * e / total) : 0, pm = total ? (100 * m / total) : 0;
+    el("donut").style.background = "conic-gradient(var(--easy) 0% " + pe +
+      "%, var(--medium) " + pe + "% " + (pe + pm) + "%, var(--hard) " + (pe + pm) + "% 100%)";
+    el("donut-total").textContent = total;
+    el("donut-legend").innerHTML =
+      '<div class="legend-row"><span class="dot" style="background:var(--easy)"></span>Easy <b style="margin-left:auto">' + e + "</b></div>" +
+      '<div class="legend-row"><span class="dot" style="background:var(--medium)"></span>Medium <b style="margin-left:auto">' + m + "</b></div>" +
+      '<div class="legend-row"><span class="dot" style="background:var(--hard)"></span>Hard <b style="margin-left:auto">' + h + "</b></div>";
+    /* heatmap */
+    renderHeatmap(d.dates);
+    /* profile + recent */
     el("repo-link").href = "https://github.com/" + (d.repo || "");
     const rank = lc.rank ? lc.rank.toLocaleString("en-US") : "–";
     el("lc-profile").innerHTML =
       '<p style="font-size:15px"><b>@' + (lc.username || "–") + "</b> · 🏆 Rank " + rank + "</p>" +
-      bar("Easy", st.Easy || 0, st.All || 0, "var(--easy)") +
-      bar("Medium", st.Medium || 0, st.All || 0, "var(--medium)") +
-      bar("Hard", st.Hard || 0, st.All || 0, "var(--hard)");
+      bar("Easy", e, total, "var(--easy)") +
+      bar("Medium", m, total, "var(--medium)") +
+      bar("Hard", h, total, "var(--hard)");
     const ul = el("dash-recent");
     ul.innerHTML = "";
     if (!d.recent || !d.recent.length){
-      ul.innerHTML = '<li class="sub">Inka emi ledu — LeetCode page lo solve chey!</li>';
+      ul.innerHTML = '<li class="sub">Inka emi ledu — Practice page lo solve chey!</li>';
     } else {
       d.recent.forEach(r => {
         const li = document.createElement("li");
@@ -833,6 +975,7 @@ el("btn-commit").addEventListener("click", () => withBusy(el("btn-commit"), asyn
   if (!p || !s) throw new Error("Mundhu solution generate chey");
   const d = await api("/api/github", "POST", {action:"commit_solution", problem:p, solution:s});
   toast("🚀 GitHub ki push aindi!");
+  confetti();
   el("btn-commit").disabled = true;
   state.loaded.dash = false;
   if (!el("page-dash").classList.contains("hidden")) loadDash();
